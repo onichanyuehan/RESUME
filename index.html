@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RESUMATE AI v31 — Long-Press Drag &amp; Drop Sections</title>
+  <title>RESUMATE AI v34 — Cross-Page Drag &amp; AI Spatial Layout Control</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -384,12 +384,28 @@
       opacity: 0.92;
       pointer-events: auto;
     }
-    /* Arrange / Move Sections Mode: drag from ANYWHERE inside any section */
+    /* Arrange / Move Sections Mode: completely lock text selection, callouts & mobile soft keyboards */
+    .move-sections-mode,
+    .move-sections-mode .physical-paper-sheet,
+    .move-sections-mode .physical-paper-sheet * {
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -moz-user-select: none !important;
+      -ms-user-select: none !important;
+      -webkit-touch-callout: none !important;
+      caret-color: transparent !important;
+    }
     .move-sections-mode .movable-section-box {
       outline: 1.5px dashed rgba(124, 58, 237, 0.55);
       outline-offset: 2px;
       border-radius: 4px;
       cursor: grab !important;
+      touch-action: pan-y;
+    }
+    .move-sections-mode .movable-section-box.is-selected-movable,
+    .move-sections-mode .movable-section-box.is-holding-section,
+    .move-sections-mode .movable-section-box.is-dragging-section {
+      touch-action: none !important;
     }
     .move-sections-mode .movable-section-box:hover {
       outline: 2px solid #7c3aed;
@@ -398,7 +414,9 @@
     .move-sections-mode .movable-section-box .wysiwyg-field,
     .move-sections-mode .movable-section-box .wysiwyg-field-dark {
       pointer-events: none !important;
-      user-select: none !important;
+      cursor: grab !important;
+      background: transparent !important;
+      box-shadow: none !important;
     }
     .movable-drag-coords {
       position: absolute;
@@ -432,6 +450,29 @@
       right: 0;
       height: 1px;
       border-top: 1px dashed #a855f7;
+    }
+    /* Cross-page drag drop-target glow */
+    .physical-paper-sheet.is-cross-page-target {
+      box-shadow: 0 0 0 3px #7c3aed, 0 18px 40px rgba(124, 58, 237, 0.28) !important;
+    }
+    .physical-paper-sheet.is-cross-page-origin {
+      overflow: visible !important;
+      z-index: 45 !important;
+    }
+    .cross-page-drop-banner {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: #7c3aed;
+      color: #ffffff;
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      pointer-events: none;
+      z-index: 130;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
     }
 
     /* Zero-flow-height floating edit actions on roles & projects (prevents ANY height shift on Export!) */
@@ -579,6 +620,9 @@
       #ats-modal,
       #cover-letter-modal,
       #versions-modal,
+      #interview-modal,
+      #linkedin-modal,
+      #preexport-modal,
       #pdf-export-overlay {
         display: none !important;
       }
@@ -729,6 +773,10 @@
               <i data-lucide="printer" class="h-4 w-4"></i>
               <span>ATS Vector PDF (Print)</span>
             </button>
+            <button type="button" id="btn-ai-preexport" onclick="runAiPreExportCheck()" disabled title="AI inspects live rendered preview screenshots for layout, overflow, contrast &amp; typo issues before export" class="w-full flex items-center justify-center gap-2 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/80 dark:bg-purple-950/40 px-3 py-2 text-xs font-semibold text-purple-800 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/50 disabled:opacity-40 transition">
+              <i data-lucide="sparkles" class="h-4 w-4"></i>
+              <span>AI Pre-Export Visual Audit</span>
+            </button>
           </div>
 
           <!-- JSON Backup -->
@@ -801,6 +849,22 @@
                   <i data-lucide="rotate-ccw" class="h-3 w-3"></i>
                   <span>Reset Layout</span>
                 </button>
+              </div>
+              <div class="rounded-xl border border-violet-200 dark:border-violet-800/80 bg-gradient-to-r from-purple-50/90 to-violet-50/90 dark:from-purple-950/40 dark:to-violet-950/40 p-2.5 space-y-2">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                  <i data-lucide="sparkles" class="h-3 w-3"></i>
+                  <span>AI Design Director</span>
+                </p>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <button type="button" onclick="aiAutoStyleDesign()" class="inline-flex items-center justify-center gap-1 rounded-lg bg-purple-600 hover:bg-purple-700 px-2 py-1.5 text-[10.5px] font-semibold text-white shadow-sm transition">
+                    <i data-lucide="wand-2" class="h-3 w-3"></i>
+                    <span>AI Auto-Style</span>
+                  </button>
+                  <button type="button" onclick="aiVisualDesignCritique()" class="inline-flex items-center justify-center gap-1 rounded-lg border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-[10.5px] font-semibold text-purple-800 dark:text-purple-200 hover:bg-purple-50 transition">
+                    <i data-lucide="eye" class="h-3 w-3"></i>
+                    <span>AI Critique</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -970,6 +1034,28 @@
               </span>
               <i data-lucide="chevron-right" class="h-4 w-4 text-slate-400"></i>
             </button>
+
+            <button type="button" onclick="openModal('interview-modal')" class="w-full flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-purple-400 hover:bg-purple-50/40 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center gap-2.5">
+                <i data-lucide="mic" class="h-4 w-4 text-purple-600 dark:text-purple-400"></i>
+                <span>AI Interview Coach (STAR)</span>
+              </span>
+              <i data-lucide="chevron-right" class="h-4 w-4 text-slate-400"></i>
+            </button>
+            <button type="button" onclick="openModal('linkedin-modal')" class="w-full flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-purple-400 hover:bg-purple-50/40 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center gap-2.5">
+                <i data-lucide="share-2" class="h-4 w-4 text-purple-600 dark:text-purple-400"></i>
+                <span>AI LinkedIn &amp; Bio Sync</span>
+              </span>
+              <i data-lucide="chevron-right" class="h-4 w-4 text-slate-400"></i>
+            </button>
+            <button type="button" onclick="runAiPreExportCheck()" class="w-full flex items-center justify-between rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-950/30 px-3.5 py-2.5 text-xs font-semibold text-purple-800 dark:text-purple-200 hover:bg-purple-100/70 transition">
+              <span class="flex items-center gap-2.5">
+                <i data-lucide="eye" class="h-4 w-4 text-purple-600 dark:text-purple-400"></i>
+                <span>AI Pre-Export Visual Audit</span>
+              </span>
+              <i data-lucide="chevron-right" class="h-4 w-4 text-purple-500"></i>
+            </button>
           </div>
 
           <!-- App Theme & Device Persistence -->
@@ -1039,7 +1125,7 @@
         <div class="flex items-center gap-2 min-w-0 shrink-0">
           <div class="h-8 w-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-bold shadow-sm shrink-0">R</div>
           <span class="hidden sm:inline font-semibold tracking-tight text-slate-950 dark:text-white truncate">RESUMATE AI</span>
-          <span class="rounded-md bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 shrink-0">v31</span>
+          <span class="rounded-md bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 shrink-0">v34</span>
         </div>
       </header>
 
@@ -1066,8 +1152,12 @@
                 <button type="button" onclick="triggerQuickPrompt('rewrite_experience', 'Rewrite my experience bullet points for stronger clarity and impact without inventing facts.')" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition"><i data-lucide="briefcase" class="h-3 w-3 text-purple-600 dark:text-purple-400"></i><span>Rewrite experience</span></button>
                 <button type="button" onclick="triggerQuickPrompt('improve_skills', 'Organize and categorize my existing skills cleanly.')" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition"><i data-lucide="layers" class="h-3 w-3 text-purple-600 dark:text-purple-400"></i><span>Organize skills</span></button>
                 <button type="button" onclick="triggerQuickPrompt('correct_grammar', 'Proofread my entire resume for grammar, tense consistency, and conciseness, and propose the corrected edits.')" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition"><i data-lucide="spell-check" class="h-3 w-3 text-purple-600 dark:text-purple-400"></i><span>Correct grammar</span></button>
-                <button type="button" onclick="triggerQuickPrompt('design_tuning', 'Adjust margins, font size, line height, and section spacing so my resume fits cleanly on 1 page while staying legible.')" class="inline-flex items-center gap-1.5 rounded-full border border-violet-200 dark:border-violet-800 bg-violet-50/80 dark:bg-violet-950/40 px-3 py-1 text-xs font-medium text-violet-700 dark:text-violet-300 hover:border-violet-400 transition"><i data-lucide="minimize-2" class="h-3 w-3"></i><span>Fit to 1 page</span></button>
+                <button type="button" onclick="triggerQuickPrompt('fit_one_page', 'Look at my live resume preview and fit everything cleanly onto 1 page. You can move/adjust sections across pages via sectionAdjustments, use fitToOnePage, and propose concise wording trims if needed.')" class="inline-flex items-center gap-1.5 rounded-full border border-violet-200 dark:border-violet-800 bg-violet-50/80 dark:bg-violet-950/40 px-3 py-1 text-xs font-medium text-violet-700 dark:text-violet-300 hover:border-violet-400 transition"><i data-lucide="minimize-2" class="h-3 w-3"></i><span>Fit to 1 page</span></button>
                 <button type="button" onclick="triggerQuickPrompt('design_tuning', 'Switch to the November 2026 Executive Boardroom template with refined spacing and warm gold accents.')" class="inline-flex items-center gap-1.5 rounded-full border border-violet-200 dark:border-violet-800 bg-violet-50/80 dark:bg-violet-950/40 px-3 py-1 text-xs font-medium text-violet-700 dark:text-violet-300 hover:border-violet-400 transition"><i data-lucide="wand-2" class="h-3 w-3"></i><span>Nov 2026 Executive</span></button>
+                <button type="button" id="chat-vision-toggle" onclick="toggleAiPreviewVision()" title="When ON, RESUMATE AI sees live rendered screenshots + exact page telemetry of your resume preview on every prompt" class="inline-flex items-center gap-1 rounded-full border border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/50 px-2.5 py-1 text-[11px] font-semibold text-purple-800 dark:text-purple-200 hover:border-purple-500 transition">
+                  <i data-lucide="eye" class="h-3 w-3 shrink-0"></i>
+                  <span id="chat-vision-label">Preview Vision: ON</span>
+                </button>
                 <span id="chat-memory-badge" title="Assistant remembers the entire chat session until you clear the chat" class="inline-flex items-center gap-1 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 px-2.5 py-1 text-[11px] font-medium text-emerald-800 dark:text-emerald-300">
                   <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                   <span id="chat-memory-label">Full Memory (0)</span>
@@ -1119,8 +1209,13 @@
                   <button type="button" id="tpl-mode-sample" onclick="setTemplatePreviewSource('sample')" class="rounded-md px-2.5 py-1 text-[11px] font-semibold bg-white dark:bg-slate-950 text-purple-700 dark:text-purple-300 shadow-sm transition">Sample CV</button>
                   <button type="button" id="tpl-mode-mine" onclick="setTemplatePreviewSource('mine')" class="rounded-md px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">My Resume</button>
                 </div>
+                <!-- AI Best Match Recommender -->
+                <button type="button" id="btn-ai-rec-templates" onclick="aiRecommendTemplates()" class="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-sm transition">
+                  <i data-lucide="sparkles" class="h-3.5 w-3.5"></i>
+                  <span>AI Pick Best Fit</span>
+                </button>
                 <!-- Search Input -->
-                <div class="relative flex-1 sm:flex-none sm:w-48">
+                <div class="relative flex-1 sm:flex-none sm:w-44">
                   <i data-lucide="search" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"></i>
                   <input type="text" id="tpl-search-input" oninput="setTemplateSearchQuery(this.value)" placeholder="Search templates..." class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 pl-8 pr-2.5 py-1 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-purple-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none" />
                 </div>
@@ -1132,7 +1227,8 @@
           </div>
 
           <!-- Compact 4-Up Responsive Grid Sample View (Displays 4 Full Templates at a Time) -->
-          <div id="tpl-gallery-scroll" class="flex-1 overflow-y-auto px-3 sm:px-5 py-4">
+          <div id="tpl-gallery-scroll" class="flex-1 overflow-y-auto px-3 sm:px-5 py-4 space-y-3">
+            <div id="tpl-ai-recommendations" class="hidden max-w-[960px] mx-auto rounded-2xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3.5 shadow-sm space-y-2.5"></div>
             <div id="tpl-gallery-grid" class="max-w-[960px] mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5 pb-8"></div>
           </div>
         </section>
@@ -1253,14 +1349,26 @@
           <label for="cl-jd-input" class="block text-xs font-medium text-slate-700 dark:text-slate-200 mb-1">Target Role or Job Description (Optional — No Minimum Length)</label>
           <textarea id="cl-jd-input" rows="4" placeholder="Enter a job title, company name, full job description, or leave blank for a general cover letter..." class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:border-purple-500 focus:outline-none"></textarea>
         </div>
-        <button type="button" id="btn-gen-cl" onclick="generateCoverLetter()" class="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-purple-700">
-          <i data-lucide="mail" class="h-4 w-4"></i>
-          <span>Draft Cover Letter</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="cl-tone-select" aria-label="Cover letter tone" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-100">
+            <option value="executive">Tone: Executive &amp; Confident</option>
+            <option value="modern">Tone: Modern &amp; Direct</option>
+            <option value="creative">Tone: Warm &amp; Creative</option>
+          </select>
+          <button type="button" id="btn-gen-cl" onclick="generateCoverLetter()" class="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-purple-700">
+            <i data-lucide="sparkles" class="h-4 w-4"></i>
+            <span>Draft Cover Letter</span>
+          </button>
+        </div>
         <div id="cl-output-wrapper" class="hidden space-y-2">
           <label for="cl-output-text" class="block text-xs font-medium text-slate-700 dark:text-slate-200">Editable Draft (Review before copying)</label>
           <textarea id="cl-output-text" rows="10" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 text-xs sm:text-sm leading-relaxed text-slate-900 dark:text-slate-100 focus:border-purple-500 focus:outline-none"></textarea>
-          <button type="button" onclick="copyCoverLetter()" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50">Copy to Clipboard</button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="copyCoverLetter()" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50">Copy to Clipboard</button>
+            <button type="button" onclick="refineCoverLetterWithAi('Tighten and shorten this cover letter by 30% while keeping every core achievement.')" class="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1.5 text-[11px] font-semibold text-purple-800 dark:text-purple-200 hover:bg-purple-100">✨ Shorter</button>
+            <button type="button" onclick="refineCoverLetterWithAi('Elevate the voice to be more executive, strategic, and leadership-focused without inventing facts.')" class="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1.5 text-[11px] font-semibold text-purple-800 dark:text-purple-200 hover:bg-purple-100">✨ More Executive</button>
+            <button type="button" onclick="refineCoverLetterWithAi('Highlight the candidate\'s strongest verified achievements and outcomes more vividly without fabricating numbers.')" class="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1.5 text-[11px] font-semibold text-purple-800 dark:text-purple-200 hover:bg-purple-100">✨ Emphasize Impact</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1276,6 +1384,81 @@
         </button>
       </div>
       <div id="versions-list-body" class="flex-1 overflow-y-auto p-6 space-y-3 text-sm"></div>
+    </div>
+  </div>
+
+  <!-- 6. AI Interview Coach (STAR Prep) Modal -->
+  <div id="interview-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/55 p-4">
+    <div class="w-full max-w-2xl max-h-[90dvh] flex flex-col rounded-2xl bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+        <h2 class="text-base font-semibold text-slate-950 dark:text-white flex items-center gap-2">
+          <i data-lucide="mic" class="h-4 w-4 text-purple-600 dark:text-purple-400"></i>
+          <span>AI Interview Coach &amp; STAR Talking Points</span>
+        </h2>
+        <button type="button" onclick="closeModal('interview-modal')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-6 space-y-4">
+        <div>
+          <label for="interview-jd-input" class="block text-xs font-medium text-slate-700 dark:text-slate-200 mb-1">Target Role or Job Description (Optional)</label>
+          <textarea id="interview-jd-input" rows="3" placeholder="Paste target role, company, or job description (or leave blank to generate questions from your resume)..." class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:border-purple-500 focus:outline-none"></textarea>
+        </div>
+        <button type="button" onclick="generateInterviewPrep()" class="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-purple-700">
+          <i data-lucide="sparkles" class="h-4 w-4"></i>
+          <span>Generate Grounded Interview Q&amp;A</span>
+        </button>
+        <div id="interview-results-area" class="space-y-3 text-xs sm:text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. AI LinkedIn & Professional Bio Sync Modal -->
+  <div id="linkedin-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/55 p-4">
+    <div class="w-full max-w-2xl max-h-[90dvh] flex flex-col rounded-2xl bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+        <h2 class="text-base font-semibold text-slate-950 dark:text-white flex items-center gap-2">
+          <i data-lucide="share-2" class="h-4 w-4 text-purple-600 dark:text-purple-400"></i>
+          <span>AI LinkedIn Profile &amp; Bio Sync</span>
+        </h2>
+        <button type="button" onclick="closeModal('linkedin-modal')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-6 space-y-4">
+        <p class="text-xs text-slate-600 dark:text-slate-300">Generate a verified LinkedIn Headline, About summary, and Featured Highlights synced directly from your current resume facts.</p>
+        <button type="button" onclick="generateLinkedInKit()" class="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-purple-700">
+          <i data-lucide="sparkles" class="h-4 w-4"></i>
+          <span>Generate LinkedIn Profile Kit</span>
+        </button>
+        <div id="linkedin-results-area" class="space-y-3 text-xs sm:text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. AI Pre-Export Visual & Readiness Audit Modal -->
+  <div id="preexport-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/55 p-4">
+    <div class="w-full max-w-xl max-h-[88dvh] flex flex-col rounded-2xl bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+        <h2 class="text-base font-semibold text-slate-950 dark:text-white flex items-center gap-2">
+          <i data-lucide="eye" class="h-4 w-4 text-purple-600 dark:text-purple-400"></i>
+          <span>AI Pre-Export Visual &amp; Quality Audit</span>
+        </h2>
+        <button type="button" onclick="closeModal('preexport-modal')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+      </div>
+      <div id="preexport-results-body" class="flex-1 overflow-y-auto p-6 space-y-3 text-xs sm:text-sm"></div>
+      <div class="border-t border-slate-200 dark:border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-2 bg-slate-50/80 dark:bg-slate-950">
+        <button type="button" onclick="closeModal('preexport-modal'); sendPreExportFixesToChat()" class="inline-flex items-center gap-1.5 rounded-xl border border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/50 px-3.5 py-2 text-xs font-semibold text-purple-800 dark:text-purple-200 hover:bg-purple-100">
+          <i data-lucide="wand-2" class="h-3.5 w-3.5"></i>
+          <span>Fix Issues in Chat</span>
+        </button>
+        <button type="button" onclick="closeModal('preexport-modal'); exportPdfDocument()" class="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-700 shadow-sm">
+          <i data-lucide="camera" class="h-3.5 w-3.5"></i>
+          <span>Export PDF Now</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1378,6 +1561,7 @@
       printPreviewMode: false,
       moveSectionsMode: false,
       selectedMoveId: null,
+      aiPreviewVision: true,
       zoom: 100,
       rememberOnDevice: initialRememberDevice,
       darkMode: false,
@@ -1528,7 +1712,7 @@
             if (state.sideDrawerOpen && !state.sideDrawerPinned) {
               toggleSideDrawer(false);
             }
-            ['config-modal', 'import-review-modal', 'ats-modal', 'cover-letter-modal', 'versions-modal'].forEach(closeModal);
+            ['config-modal', 'import-review-modal', 'ats-modal', 'cover-letter-modal', 'versions-modal', 'interview-modal', 'linkedin-modal', 'preexport-modal'].forEach(closeModal);
             if (state.moveSectionsMode) toggleMoveSectionsMode(false);
             else if (state.selectedMoveId) clearSelectedMovableSection();
           }
@@ -2635,28 +2819,388 @@
       }
     }
 
+    function measureResumeLayoutTelemetry(resume) {
+      const paper = PAPER_SIZES[resume?.paperSize] || PAPER_SIZES.letter;
+      const d = { ...DEFAULT_DESIGN_SETTINGS, ...(resume?.designSettings || {}) };
+      const marginIn = typeof resume?.marginIn === 'number' ? resume.marginIn : d.marginLeft;
+      const pagesHtml = buildPaginatedPagesHtml(resume, paper, marginIn, false);
+      const pageCount = pagesHtml.length;
+      const tpl = ALLOWED_TEMPLATES.includes(resume?.templateId) ? resume.templateId : 'modern-minimal';
+      const savedMap = resume?.sectionPositions?.[tpl] || {};
+
+      let lastPageFillPct = 0;
+      let lastPageContentPx = 0;
+      const sectionsLayout = [];
+      const page1OpenPockets = [];
+
+      try {
+        const probe = document.createElement('div');
+        probe.className = 'exporting-pdf';
+        probe.style.cssText = `position:fixed;left:-99999px;top:0;width:${paper.widthPx}px;visibility:hidden;pointer-events:none;`;
+        document.body.appendChild(probe);
+
+        for (let pIdx = 0; pIdx < pageCount; pIdx += 1) {
+          probe.innerHTML = pagesHtml[pIdx] || '';
+          const sheet = probe.querySelector('.physical-paper-sheet');
+          if (!sheet) continue;
+          const sheetRect = sheet.getBoundingClientRect();
+
+          // Measure every movable section's exact visual bounding box on this sheet
+          sheet.querySelectorAll('.movable-section-box[data-move-id]').forEach((box) => {
+            const r = box.getBoundingClientRect();
+            if (r.width < 2 || r.height < 2) return;
+            const moveId = box.getAttribute('data-move-id');
+            sectionsLayout.push({
+              moveId,
+              label: box.getAttribute('data-move-label') || 'Section',
+              pageIndex: pIdx,
+              pageNumber: pIdx + 1,
+              x: Math.round(r.left - sheetRect.left),
+              y: Math.round(r.top - sheetRect.top),
+              width: Math.round(r.width),
+              height: Math.round(r.height),
+              bottom: Math.round(r.bottom - sheetRect.top),
+              isMoved: box.getAttribute('data-is-moved') === '1',
+            });
+          });
+
+          if (pIdx === pageCount - 1) {
+            let maxBottom = 0;
+            sheet.querySelectorAll('h1,h2,h3,p,li,header,section,.movable-section-box').forEach((el) => {
+              if (el.classList.contains('wysiwyg-only') || el.classList.contains('paper-margin-guide')) return;
+              const r = el.getBoundingClientRect();
+              if (r.height > 1 && r.width > 1) {
+                maxBottom = Math.max(maxBottom, r.bottom - sheetRect.top);
+              }
+            });
+            lastPageContentPx = Math.round(Math.min(paper.heightPx, Math.max(0, maxBottom)));
+            lastPageFillPct = Math.round((lastPageContentPx / paper.heightPx) * 100);
+          }
+        }
+
+        document.body.removeChild(probe);
+
+        // Compute open bottom whitespace pockets on Page 1 (Left Half, Right Half, Full Width)
+        const mL = Math.round((d.marginLeft ?? 0.5) * CSS_DPI);
+        const mR = Math.round((d.marginRight ?? 0.5) * CSS_DPI);
+        const mB = Math.round((d.marginBottom ?? 0.45) * CSS_DPI);
+        const usableBottom = paper.heightPx - mB;
+        const p0Boxes = sectionsLayout.filter((s) => s.pageIndex === 0);
+        const midX = Math.round(paper.widthPx * 0.44);
+
+        const leftBoxes = p0Boxes.filter((b) => b.x < midX && b.width < paper.widthPx * 0.65);
+        const rightBoxes = p0Boxes.filter((b) => b.x + b.width > midX + 30 && b.width < paper.widthPx * 0.72);
+        const headerBottom = p0Boxes.filter((b) => b.width >= paper.widthPx * 0.65).reduce((m, b) => Math.max(m, b.bottom), Math.round((d.marginTop ?? 0.45) * CSS_DPI));
+
+        if (leftBoxes.length > 0) {
+          const lb = Math.max(headerBottom, ...leftBoxes.map((b) => b.bottom)) + 12;
+          const lx = Math.min(...leftBoxes.map((b) => b.x));
+          const lw = Math.max(...leftBoxes.map((b) => b.width));
+          if (usableBottom - lb >= 72 && lw >= 160) {
+            page1OpenPockets.push({ zone: 'page1-left-bottom', x: Math.max(mL, lx), y: lb, width: lw, availableHeight: usableBottom - lb });
+          }
+        }
+        if (rightBoxes.length > 0) {
+          const rb = Math.max(headerBottom, ...rightBoxes.map((b) => b.bottom)) + 12;
+          const rx = Math.min(...rightBoxes.map((b) => b.x));
+          const rw = Math.min(paper.widthPx - mR - rx, Math.max(...rightBoxes.map((b) => b.width)));
+          if (usableBottom - rb >= 72 && rw >= 160) {
+            page1OpenPockets.push({ zone: 'page1-right-bottom', x: rx, y: rb, width: rw, availableHeight: usableBottom - rb });
+          }
+        }
+        const allBottom = p0Boxes.reduce((m, b) => Math.max(m, b.bottom), headerBottom) + 12;
+        if (usableBottom - allBottom >= 72) {
+          page1OpenPockets.push({ zone: 'page1-full-bottom', x: mL, y: allBottom, width: paper.widthPx - mL - mR, availableHeight: usableBottom - allBottom });
+        }
+      } catch {}
+
+      const movedCount = Object.keys(savedMap).length;
+
+      return {
+        paper,
+        pagesHtml,
+        sectionsLayout,
+        page1OpenPockets,
+        telemetry: {
+          renderedPageCount: pageCount,
+          overflowsOnePage: pageCount > 1,
+          paperSize: paper.id,
+          paperDimensions: `${paper.widthIn}" × ${paper.heightIn}" (${paper.widthPx}×${paper.heightPx}px)`,
+          lastPageOccupiedPx: lastPageContentPx,
+          lastPageFillPercent: lastPageFillPct,
+          movedSectionCount: movedCount,
+          sectionsLayout,
+          page1OpenPockets,
+          currentTypographyAndMargins: {
+            fontSize: d.fontSize,
+            nameSize: d.nameSize,
+            headingSize: d.headingSize,
+            lineHeight: d.lineHeight,
+            sectionGap: d.sectionGap,
+            itemGap: d.itemGap,
+            marginTop: d.marginTop,
+            marginBottom: d.marginBottom,
+            marginLeft: d.marginLeft,
+            marginRight: d.marginRight,
+            showPhoto: d.showPhoto,
+            photoSize: d.photoSize,
+          },
+        },
+      };
+    }
+
+    // Spatial Cross-Page Packer: attempts to move remaining Page 2+ overflow sections into
+    // real open whitespace pockets on Page 1 (zero overlap) and verifies pageCount drops to 1!
+    function tryPackOverflowSectionsIntoPage1(candResume) {
+      const tpl = ALLOWED_TEMPLATES.includes(candResume.templateId) ? candResume.templateId : 'modern-minimal';
+      const snap = measureResumeLayoutTelemetry(candResume);
+      if (snap.telemetry.renderedPageCount <= 1) return { packed: true, movedLabels: [] };
+
+      const overflowSecs = snap.sectionsLayout.filter((s) => s.pageIndex > 0);
+      if (overflowSecs.length === 0 || overflowSecs.length > 3) return { packed: false, movedLabels: [] };
+      const pockets = (snap.page1OpenPockets || []).slice().sort((a, b) => b.availableHeight - a.availableHeight);
+      if (pockets.length === 0) return { packed: false, movedLabels: [] };
+
+      const trialPos = JSON.parse(JSON.stringify(candResume.sectionPositions || {}));
+      trialPos[tpl] = { ...(trialPos[tpl] || {}) };
+      const movedLabels = [];
+
+      // Greedily place each Page 2+ section into the best-fitting Page 1 open pocket
+      const pocketCursors = pockets.map((p) => ({ ...p, curY: p.y, remH: p.availableHeight }));
+      for (let i = 0; i < overflowSecs.length; i += 1) {
+        const sec = overflowSecs[i];
+        // Estimate height when adapted to pocket width
+        const chosen = pocketCursors.find((pk) => {
+          const widthRatio = Math.max(0.75, sec.width / Math.max(150, pk.width));
+          const estH = Math.ceil(sec.height * Math.min(1.45, widthRatio));
+          return estH + 8 <= pk.remH;
+        });
+        if (!chosen) return { packed: false, movedLabels: [] };
+
+        const widthRatio = Math.max(0.75, sec.width / Math.max(150, chosen.width));
+        const estH = Math.ceil(sec.height * Math.min(1.45, widthRatio));
+        trialPos[tpl][sec.moveId] = {
+          targetPage: 0,
+          absX: Math.round(chosen.x),
+          absY: Math.round(chosen.curY),
+          w: Math.round(chosen.width),
+          z: 28 + i,
+        };
+        chosen.curY += estH + 10;
+        chosen.remH -= estH + 10;
+        movedLabels.push(sec.label);
+      }
+
+      const verifyCand = { ...candResume, sectionPositions: trialPos };
+      const verifySnap = measureResumeLayoutTelemetry(verifyCand);
+      if (verifySnap.telemetry.renderedPageCount <= 1) {
+        // Also ensure no placed block overflows past the bottom margin of Page 1
+        const paper = verifySnap.paper;
+        const maxBottom = verifySnap.sectionsLayout
+          .filter((s) => s.pageIndex === 0)
+          .reduce((m, s) => Math.max(m, s.bottom), 0);
+        if (maxBottom <= paper.heightPx - 14) {
+          candResume.sectionPositions = trialPos;
+          return { packed: true, movedLabels };
+        }
+      }
+      return { packed: false, movedLabels: [] };
+    }
+
+    // Precision Iterative 1-Page Auto-Fit Solver (Typography Ladder + Smart Cross-Page Spatial Packing!):
+    // Measures real paginated DOM output step-by-step and stops at the EXACT lightest adjustment
+    // that fits the entire resume cleanly onto 1 page across all 59 templates!
+    function autoFitResumeToOnePage(resume) {
+      const paper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const baseDesign = { ...DEFAULT_DESIGN_SETTINGS, ...(resume.designSettings || {}) };
+      const getCount = (cand) => {
+        const mIn = typeof cand.marginIn === 'number' ? cand.marginIn : (cand.designSettings?.marginLeft ?? 0.5);
+        return buildPaginatedPagesHtml(cand, paper, mIn, false).length;
+      };
+
+      const startPages = getCount(resume);
+      if (startPages <= 1) {
+        return { fitted: true, alreadyOnePage: true, startPages, endPages: startPages, appliedChanges: [] };
+      }
+
+      const capMin = (cur, target) => Math.min(Number(cur), target);
+      const startPhoto = Number(baseDesign.photoSize) || DEFAULT_PHOTO_SIZE_PX;
+
+      // Try spatial packing first at current font size if Page 1 already has a clean open pocket!
+      const directPackCand = { ...resume, sectionPositions: JSON.parse(JSON.stringify(resume.sectionPositions || {})) };
+      const directPack = tryPackOverflowSectionsIntoPage1(directPackCand);
+      if (directPack.packed) {
+        resume.sectionPositions = directPackCand.sectionPositions;
+        return {
+          fitted: true,
+          alreadyOnePage: false,
+          startPages,
+          endPages: 1,
+          appliedChanges: [`Spatial Auto-Fit: moved ${directPack.movedLabels.join(', ')} onto Page 1 open space → 1 page ✓`],
+        };
+      }
+
+      const steps = [
+        { marginTop: 0.44, marginBottom: 0.44, marginLeft: 0.48, marginRight: 0.48, sectionGap: 9, itemGap: 6 },
+        { marginTop: 0.40, marginBottom: 0.40, marginLeft: 0.45, marginRight: 0.45, sectionGap: 8, itemGap: 5, lineHeight: 1.38 },
+        { marginTop: 0.38, marginBottom: 0.38, marginLeft: 0.42, marginRight: 0.42, sectionGap: 7, itemGap: 4, lineHeight: 1.34, fontSize: 11.0, nameSize: 28, headingSize: 10.8 },
+        { marginTop: 0.36, marginBottom: 0.36, marginLeft: 0.40, marginRight: 0.40, sectionGap: 6, itemGap: 4, lineHeight: 1.30, fontSize: 10.5, nameSize: 25, headingSize: 10.4, photoSize: Math.min(startPhoto, 148) },
+        { marginTop: 0.34, marginBottom: 0.34, marginLeft: 0.38, marginRight: 0.38, sectionGap: 6, itemGap: 3, lineHeight: 1.26, fontSize: 10.0, nameSize: 23, headingSize: 10.0, photoSize: Math.min(startPhoto, 134) },
+        { marginTop: 0.32, marginBottom: 0.32, marginLeft: 0.36, marginRight: 0.36, sectionGap: 5, itemGap: 3, lineHeight: 1.22, fontSize: 9.6, nameSize: 21, headingSize: 9.8, photoSize: Math.min(startPhoto, 122) },
+        { marginTop: 0.28, marginBottom: 0.28, marginLeft: 0.34, marginRight: 0.34, sectionGap: 4, itemGap: 2, lineHeight: 1.18, fontSize: 9.2, nameSize: 20, headingSize: 9.4, photoSize: Math.min(startPhoto, 108) },
+        { marginTop: 0.25, marginBottom: 0.25, marginLeft: 0.30, marginRight: 0.30, sectionGap: 3, itemGap: 2, lineHeight: 1.14, fontSize: 8.8, nameSize: 19, headingSize: 9.0, photoSize: Math.min(startPhoto, 96) },
+        { marginTop: 0.22, marginBottom: 0.22, marginLeft: 0.28, marginRight: 0.28, sectionGap: 2, itemGap: 2, lineHeight: 1.10, fontSize: 8.5, nameSize: 18, headingSize: 9.0, photoSize: Math.min(startPhoto, 88) },
+      ];
+
+      let bestDesign = null;
+      let bestPositions = null;
+      let bestPages = startPages;
+      let packedLabels = [];
+
+      for (let i = 0; i < steps.length; i += 1) {
+        const st = steps[i];
+        const nextDesign = { ...baseDesign };
+        Object.entries(st).forEach(([k, v]) => {
+          if (k === 'photoSize') {
+            if (baseDesign.showPhoto !== false) nextDesign.photoSize = capMin(baseDesign.photoSize || DEFAULT_PHOTO_SIZE_PX, v);
+          } else {
+            nextDesign[k] = capMin(baseDesign[k] ?? DEFAULT_DESIGN_SETTINGS[k], v);
+          }
+        });
+
+        const cand = {
+          ...resume,
+          designSettings: nextDesign,
+          marginIn: nextDesign.marginLeft,
+          sectionPositions: JSON.parse(JSON.stringify(resume.sectionPositions || {})),
+        };
+        const count = getCount(cand);
+        if (count < bestPages || bestDesign === null) {
+          bestPages = count;
+          bestDesign = nextDesign;
+        }
+        if (count <= 1) {
+          bestPages = 1;
+          bestDesign = nextDesign;
+          break;
+        }
+        // At moderate-to-compact steps (index >= 2), check if moving remaining Page 2 blocks into Page 1 open space achieves 1 page without shrinking font further!
+        if (i >= 2) {
+          const packRes = tryPackOverflowSectionsIntoPage1(cand);
+          if (packRes.packed) {
+            bestPages = 1;
+            bestDesign = nextDesign;
+            bestPositions = cand.sectionPositions;
+            packedLabels = packRes.movedLabels;
+            break;
+          }
+        }
+      }
+
+      if (bestDesign) {
+        resume.designSettings = bestDesign;
+        resume.marginIn = bestDesign.marginLeft;
+      }
+      if (bestPositions) {
+        resume.sectionPositions = bestPositions;
+      }
+
+      const appliedChanges = [];
+      if (bestPages <= 1) {
+        const packTxt = packedLabels.length > 0 ? ` + relocated ${packedLabels.join(', ')} to Page 1` : '';
+        appliedChanges.push(`Auto-Fit: ${startPages} pages → 1 page ✓ (${bestDesign.fontSize}px font, ${bestDesign.lineHeight} LH${packTxt})`);
+      } else {
+        appliedChanges.push(`Compressed to max legible density (${bestDesign.fontSize}px, ${bestDesign.lineHeight} LH) — still ${bestPages} pages (trim wording to reach 1 page)`);
+      }
+
+      return { fitted: bestPages <= 1, alreadyOnePage: false, startPages, endPages: bestPages, appliedChanges };
+    }
+
     async function applyCompactOnePageDesign() {
       const r = getSelectedResume();
       if (!r) return;
       pushUndoSnapshot(r);
-      r.designSettings = {
-        ...r.designSettings,
-        fontSize: 10.5,
-        nameSize: 22,
-        headingSize: 10,
-        lineHeight: 1.32,
-        sectionGap: 7,
-        itemGap: 5,
-        marginTop: 0.42,
-        marginBottom: 0.42,
-        marginLeft: 0.48,
-        marginRight: 0.48,
-      };
-      r.marginIn = 0.45;
+      const result = autoFitResumeToOnePage(r);
       await persistResume(r);
       syncDesignControls(r);
       renderPreviewPanel();
-      showStatusBanner('success', 'Applied Compact 1-Page spacing preset. Press Undo (Ctrl+Z) to revert anytime.');
+      if (result.alreadyOnePage) {
+        showStatusBanner('success', 'Your resume already fits cleanly on 1 page!');
+      } else if (result.fitted) {
+        showStatusBanner('success', `Fitted resume cleanly from ${result.startPages} pages → 1 page (${r.designSettings.fontSize}px font, ${r.designSettings.lineHeight} line-height). Press Undo (Ctrl+Z) to revert.`);
+      } else {
+        showStatusBanner('warning', `Applied maximum legible compression (${r.designSettings.fontSize}px), still ${result.endPages} pages. Ask RESUMATE AI to tighten wording so it fits on 1 page.`);
+      }
+    }
+
+    function toggleAiPreviewVision() {
+      state.aiPreviewVision = !state.aiPreviewVision;
+      syncAiVisionToggleUI();
+      showStatusBanner(
+        'success',
+        state.aiPreviewVision
+          ? 'Preview Vision ON — AI will see live rendered page screenshots + exact page telemetry on every prompt.'
+          : 'Preview Vision OFF — AI will receive JSON + layout telemetry only (no screenshots).'
+      );
+    }
+
+    function syncAiVisionToggleUI() {
+      const btn = document.getElementById('chat-vision-toggle');
+      const lbl = document.getElementById('chat-vision-label');
+      if (!btn || !lbl) return;
+      const on = state.aiPreviewVision !== false;
+      lbl.textContent = on ? 'Preview Vision: ON' : 'Preview Vision: OFF';
+      btn.classList.toggle('border-purple-300', on);
+      btn.classList.toggle('dark:border-purple-700', on);
+      btn.classList.toggle('bg-purple-50', on);
+      btn.classList.toggle('dark:bg-purple-950/50', on);
+      btn.classList.toggle('text-purple-800', on);
+      btn.classList.toggle('dark:text-purple-200', on);
+      btn.classList.toggle('border-slate-200', !on);
+      btn.classList.toggle('dark:border-slate-700', !on);
+      btn.classList.toggle('bg-slate-50', !on);
+      btn.classList.toggle('dark:bg-slate-900', !on);
+      btn.classList.toggle('text-slate-500', !on);
+    }
+
+    // Capture lightweight live JPEG screenshots of every rendered resume page (max 4 pages)
+    // so Gemini literally SEES the user's current visual layout on every chat prompt!
+    async function captureLivePreviewImagesForAi(resume, telemetryBundle) {
+      const { paper, pagesHtml } = telemetryBundle;
+      const d = resume.designSettings || DEFAULT_DESIGN_SETTINGS;
+      const bgColor = d.pageBgColor || '#ffffff';
+      const maxPagesToSee = Math.min(4, pagesHtml.length);
+      const images = [];
+
+      if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch {}
+      }
+      const fontEmbedCSS = await getEmbeddedGoogleFontsCss(resume);
+
+      const staging = document.createElement('div');
+      staging.className = 'exporting-pdf';
+      staging.style.cssText = `position:fixed;left:-99999px;top:0;width:${paper.widthPx}px;height:${paper.heightPx}px;overflow:hidden;background:${bgColor};color-scheme:light;pointer-events:none;`;
+      document.body.appendChild(staging);
+
+      try {
+        for (let i = 0; i < maxPagesToSee; i += 1) {
+          staging.innerHTML = pagesHtml[i];
+          const sheetEl = staging.querySelector('.physical-paper-sheet');
+          if (!sheetEl) continue;
+          await waitForDomAndAssetsReady(staging);
+          try {
+            const shot = await captureDirectSheetScreenshot(sheetEl, paper, bgColor, fontEmbedCSS, 0.88);
+            const jpgUrl = shot.canvas.toDataURL('image/jpeg', 0.78);
+            const b64 = jpgUrl.split(',')[1] || '';
+            if (b64) {
+              images.push({ pageNumber: i + 1, mimeType: 'image/jpeg', data: b64 });
+            }
+          } catch {}
+        }
+      } finally {
+        if (staging.parentNode) document.body.removeChild(staging);
+      }
+      return images;
     }
 
     async function resetDesignSettings() {
@@ -3805,10 +4349,16 @@
               <p class="font-semibold text-slate-900 dark:text-white text-xs">${escapeHtml(v.label || `Snapshot #${idx + 1}`)}</p>
               <p class="text-[11px] text-slate-500 dark:text-slate-400">${escapeHtml(dateLabel)}</p>
             </div>
-            <button type="button" onclick="restoreVersion(${idx})" class="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700">
-              Restore
-            </button>
-          </div>`;
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="aiCompareVersionSnapshot(${idx})" class="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1.5 text-[11px] font-semibold text-purple-800 dark:text-purple-200 hover:bg-purple-100">
+                ✨ AI Diff
+              </button>
+              <button type="button" onclick="restoreVersion(${idx})" class="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700">
+                Restore
+              </button>
+            </div>
+          </div>
+          <div id="version-ai-diff-${idx}" class="hidden rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/30 p-3 text-xs text-slate-700 dark:text-slate-200"></div>`;
         })
         .join('');
     }
@@ -3886,6 +4436,8 @@
       if (exportLiveBtn) exportLiveBtn.disabled = !hasResume || state.isExportingPdf;
       if (exportPngBtn) exportPngBtn.disabled = !hasResume || state.isExportingPdf;
       if (printBtn) printBtn.disabled = !hasResume;
+      const preExportBtn = document.getElementById('btn-ai-preexport');
+      if (preExportBtn) preExportBtn.disabled = !hasResume;
       syncMoveModeButtons(hasResume);
       updateUndoRedoButtons();
     }
@@ -4675,6 +5227,9 @@ Return strictly valid JSON:
       resume.sectionOrder = [...(prev.sectionOrder || DEFAULT_SECTION_ORDER)];
       resume.hiddenSections = [...(prev.hiddenSections || [])];
       resume.designSettings = { ...DEFAULT_DESIGN_SETTINGS, ...(prev.designSettings || {}) };
+      if (prev.sectionPositions && typeof prev.sectionPositions === 'object') {
+        resume.sectionPositions = JSON.parse(JSON.stringify(prev.sectionPositions));
+      }
       if (resume.personalInfo) resume.personalInfo.photoShape = resume.designSettings.photoShape;
 
       msg.designAction.undone = true;
@@ -4761,11 +5316,28 @@ You can modify ANY visual, structural, or document setting the user requests via
    - Photo (available in ALL 59 templates): showPhoto (boolean), photoSizeIn (0.5 to 3.0 inches; default 2.0 for 2"×2" real paper size) OR photoSize (48-288 px; 96px = 1 inch, default 192 = 2"×2"), photoShape ("square"|"rounded"|"circle"), photoPosition ("right"|"left")
    - Structure styles: headerAlign ("left"|"center"), headingStyle ("uppercase"|"capitalize"|"none"), dividerStyle ("solid"|"accent-bar"|"double"|"left-bar"|"none"), bulletStyle ("disc"|"square"|"dash"|"none"), iconStyle ("all"|"contact"|"none")
 3. "documentActions" (optional object — include ONLY keys to change):
+   - fitToOnePage: boolean (SET THIS TO true WHENEVER the user asks to fit, compress, shrink, or keep the entire resume on 1 page! The precision DOM + spatial solver will measure pages, pack overflowing Page 2 sections into Page 1 open space if clean, and dial spacing/font so it ACTUALLY fits on 1 page!)
+   - sectionAdjustments: array of spatial move/resize/cross-page commands for ANY section in [LIVE VISUAL LAYOUT TELEMETRY].sectionsLayout (use exact "moveId" values such as "p0::skills", "p1::education", "p0::photo"):
+     * Cross-page or exact placement: { "moveId": "p1::education", "targetPage": 0, "absX": 48, "absY": 640, "width": 250, "z": 28 } ("targetPage" is 0-based: 0 = Page 1, 1 = Page 2; empty trailing pages auto-prune!)
+     * Relative nudge/resize on same page: { "moveId": "p0::skills", "dx": 0, "dy": -20, "width": 240 }
+     * Reset one section: { "moveId": "p0::skills", "reset": true }
+   - resetSectionPositions: boolean (true to reset ALL custom moved/resized section positions back to template defaults)
    - paperSize: "letter" (8.5x11) or "legal" (8.5x13)
    - sectionOrder: array reordering any subset/all of ["summary","experience","education","skills","projects","certifications","extraSections"]
    - hiddenSections: array of section keys to hide (e.g. ["summary"]) or [] to show all
    - title: string (rename resume file title)
    - resetDesign: boolean (true to reset styling to current template defaults)
+
+LIVE VISUAL PREVIEW & SPATIAL LAYOUT CONTROL (CRITICAL):
+- On EVERY user message, you receive BOTH the live rendered JPEG screenshot(s) of the resume preview AND exact [LIVE VISUAL LAYOUT TELEMETRY] including:
+  * renderedPageCount, lastPageFillPercent, paperDimensions
+  * sectionsLayout: exact moveId, label, pageIndex (0-based), x, y, width, height, bottom of EVERY section across all pages
+  * page1OpenPockets: exact open whitespace zones (x, y, width, availableHeight) on Page 1
+- You can freely move sections across pages (e.g. pull a Page 2 section into a Page 1 open pocket), shift (dx/dy), widen/narrow (width), or reset positions via "documentActions.sectionAdjustments"!
+- Ensure placed sections never overlap existing blocks (check x, y, width, height against sectionsLayout) and stay inside paperDimensions.
+- When the user asks to fit everything on 1 page:
+  1) ALWAYS set "documentActions": { "fitToOnePage": true } (and optionally include "sectionAdjustments" to relocate Page 2 sections cleanly into page1OpenPockets!).
+  2) If telemetry shows heavy overflow (e.g. renderedPageCount >= 2 with lastPageFillPercent > 40%, or 3+ pages), ALSO set "hasProposedEdit": true with a tightened, punchier "proposedEdit" (trimming filler words only — never inventing or dropping real jobs/degrees) so spatial layout, spacing, AND concise copy work together cleanly.
 
 If the user ONLY requests design/layout/template/margin/font/photo/order changes, set "hasProposedEdit": false and "proposedEdit": null so their resume facts remain untouched. If they request BOTH design changes AND text edits, include BOTH!
 
@@ -4796,6 +5368,20 @@ ALWAYS respond strictly in valid JSON:
   "proposedEdit": null
 }`;
 
+        const indicatorEl = document.getElementById('chat-loading-status');
+        if (indicatorEl) indicatorEl.textContent = 'Inspecting live resume preview...';
+
+        const telemetryBundle = measureResumeLayoutTelemetry(resume);
+        const liveTelemetry = telemetryBundle.telemetry;
+        let previewImagesForAi = [];
+        if (state.aiPreviewVision !== false) {
+          if (indicatorEl) indicatorEl.textContent = `Capturing live preview (${liveTelemetry.renderedPageCount}p) for AI vision...`;
+          try {
+            previewImagesForAi = await captureLivePreviewImagesForAi(resume, telemetryBundle);
+          } catch {}
+        }
+        if (indicatorEl) indicatorEl.textContent = `Thinking with ${state.selectedModelId || 'gemini-3.5-flash-lite'}...`;
+
         const liveResumeSnapshotJson = JSON.stringify({
           title: resume.title,
           templateId: resume.templateId,
@@ -4812,6 +5398,7 @@ ALWAYS respond strictly in valid JSON:
           certifications: resume.certifications,
           extraSections: resume.extraSections,
         }, null, 2);
+        const liveTelemetryJson = JSON.stringify(liveTelemetry, null, 2);
 
         // Build FULL multi-turn Gemini `contents` from message #1 to now (zero .slice truncation!)
         const fullHistory = state.conversations[convKey].filter((m) => !m.isError);
@@ -4854,9 +5441,18 @@ ALWAYS respond strictly in valid JSON:
               }
             }
             if (isLatestTurn) {
-              turnText = `[CURRENT LIVE RESUME SNAPSHOT (JSON)]\n${liveResumeSnapshotJson}\n\n[ACTION MODE: ${actionType}]\n\n[USER MESSAGE]:\n${turnText}`;
+              const visionNote = previewImagesForAi.length > 0
+                ? `[LIVE VISUAL PREVIEW ATTACHED: ${previewImagesForAi.length} of ${liveTelemetry.renderedPageCount} rendered page screenshot(s) included inline below]`
+                : `[LIVE VISUAL PREVIEW: Telemetry attached (screenshots off/unavailable)]`;
+              turnText = `${visionNote}\n\n[LIVE VISUAL LAYOUT TELEMETRY (MEASURED FROM BROWSER DOM)]\n${liveTelemetryJson}\n\n[CURRENT LIVE RESUME SNAPSHOT (JSON)]\n${liveResumeSnapshotJson}\n\n[ACTION MODE: ${actionType}]\n\n[USER MESSAGE]:\n${turnText}`;
+              parts.unshift({ text: turnText });
+              previewImagesForAi.forEach((imgObj) => {
+                parts.push({ text: `[LIVE RENDERED RESUME PREVIEW — PAGE ${imgObj.pageNumber} OF ${liveTelemetry.renderedPageCount}]` });
+                parts.push({ inlineData: { mimeType: imgObj.mimeType, data: imgObj.data } });
+              });
+            } else {
+              parts.unshift({ text: turnText });
             }
-            parts.unshift({ text: turnText });
           } else {
             // Preserve full structured memory of assistant replies, design actions (including undos), and proposed edits (applied/rejected/pending)
             const modelTurnSummary = {
@@ -4886,19 +5482,47 @@ ALWAYS respond strictly in valid JSON:
           }
         });
 
-        const aiResult = await callGeminiJson(
-          '',
-          0.2,
-          [],
-          (retryMsg) => {
-            const indicator = document.getElementById('chat-loading-status');
-            if (indicator) indicator.textContent = retryMsg;
-          },
-          {
-            systemInstruction: systemInstructionText,
-            contents: multiTurnContents,
+        let aiResult;
+        let usedVisionPages = previewImagesForAi.length;
+        try {
+          aiResult = await callGeminiJson(
+            '',
+            0.2,
+            [],
+            (retryMsg) => {
+              const indicator = document.getElementById('chat-loading-status');
+              if (indicator) indicator.textContent = retryMsg;
+            },
+            {
+              systemInstruction: systemInstructionText,
+              contents: multiTurnContents,
+            }
+          );
+        } catch (firstGeminiErr) {
+          if (previewImagesForAi.length > 0 && /image|multimodal|inline|mime|unsupported|invalid argument/i.test(String(firstGeminiErr?.message || ''))) {
+            usedVisionPages = 0;
+            const textOnlyContents = multiTurnContents.map((turn, idx) =>
+              idx === multiTurnContents.length - 1
+                ? { ...turn, parts: turn.parts.filter((p) => !p.inlineData || (userMsg.attachmentInline && p.inlineData.data === userMsg.attachmentInline.data)) }
+                : turn
+            );
+            aiResult = await callGeminiJson(
+              '',
+              0.2,
+              [],
+              (retryMsg) => {
+                const indicator = document.getElementById('chat-loading-status');
+                if (indicator) indicator.textContent = retryMsg;
+              },
+              {
+                systemInstruction: systemInstructionText,
+                contents: textOnlyContents,
+              }
+            );
+          } else {
+            throw firstGeminiErr;
           }
-        );
+        }
 
         const prevDesignState = {
           templateId: resume.templateId,
@@ -4908,14 +5532,27 @@ ALWAYS respond strictly in valid JSON:
           sectionOrder: [...(resume.sectionOrder || DEFAULT_SECTION_ORDER)],
           hiddenSections: [...(resume.hiddenSections || [])],
           designSettings: { ...DEFAULT_DESIGN_SETTINGS, ...(resume.designSettings || {}) },
+          sectionPositions: JSON.parse(JSON.stringify(resume.sectionPositions || {})),
         };
 
         const appliedDesignChanges = [];
         const docActions = aiResult.documentActions && typeof aiResult.documentActions === 'object' ? aiResult.documentActions : {};
         const requestedTemplate = aiResult.templateId || docActions.templateId;
         const cleanDesignPatch = sanitizeDesignPatch(aiResult.designSettings);
+        const userAskedFitOnePage =
+          actionType === 'fit_one_page' ||
+          /\b(?:fit|squeeze|make|compress|keep|shrink|put|condense)\b[\s\S]{0,45}\b(?:1|one|single)\s*[- ]?page\b|\bfit\s+to\s+1\b|\bone[- ]?page\b/i.test(promptText);
+        const shouldRunOnePageFit = docActions.fitToOnePage === true || userAskedFitOnePage;
 
+        const aiSectionAdj = Array.isArray(docActions.sectionAdjustments)
+          ? docActions.sectionAdjustments
+          : Array.isArray(aiResult.sectionAdjustments)
+          ? aiResult.sectionAdjustments
+          : [];
         const willModifyLayout =
+          shouldRunOnePageFit ||
+          docActions.resetSectionPositions === true ||
+          aiSectionAdj.length > 0 ||
           (requestedTemplate && ALLOWED_TEMPLATES.includes(requestedTemplate)) ||
           Object.keys(cleanDesignPatch).length > 0 ||
           docActions.resetDesign === true ||
@@ -4972,6 +5609,27 @@ ALWAYS respond strictly in valid JSON:
             appliedDesignChanges.push(`Title → ${resume.title}`);
           }
 
+          if (docActions.resetSectionPositions === true) {
+            const activeTpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
+            if (resume.sectionPositions?.[activeTpl]) {
+              delete resume.sectionPositions[activeTpl];
+              appliedDesignChanges.push('Reset all section positions to template defaults');
+            }
+          }
+          if (aiSectionAdj.length > 0) {
+            const adjLogs = applyAiSectionAdjustmentsToResume(resume, aiSectionAdj, telemetryBundle);
+            if (adjLogs.length > 0) appliedDesignChanges.push(...adjLogs);
+          }
+
+          if (shouldRunOnePageFit) {
+            const fitResult = autoFitResumeToOnePage(resume);
+            if (fitResult.appliedChanges.length > 0) {
+              appliedDesignChanges.push(...fitResult.appliedChanges);
+            } else if (fitResult.alreadyOnePage) {
+              appliedDesignChanges.push('Verified: Already fits on 1 page ✓');
+            }
+          }
+
           await persistResume(resume);
           syncDesignControls(resume);
           renderPreviewPanel();
@@ -4979,11 +5637,24 @@ ALWAYS respond strictly in valid JSON:
         }
 
         const hasEdit = Boolean(aiResult.proposedEdit && aiResult.hasProposedEdit !== false);
+        const postTelemetry = measureResumeLayoutTelemetry(resume).telemetry;
+        let finalAssistantText = aiResult.assistantMessage || 'Done.';
+        if (shouldRunOnePageFit) {
+          if (postTelemetry.renderedPageCount <= 1) {
+            finalAssistantText += `\n\n✓ Verified live layout: now fits cleanly on 1 page (${resume.designSettings.fontSize}px font, ${resume.designSettings.lineHeight} line-height, ${resume.designSettings.marginTop}" margins).`;
+          } else if (hasEdit) {
+            finalAssistantText += `\n\nCurrently ${postTelemetry.renderedPageCount} pages before text trimming — click "Apply Changes" below and I will automatically re-fit the spacing to 1 page.`;
+          } else {
+            finalAssistantText += `\n\nNote: Even at minimum legible density (${resume.designSettings.fontSize}px), your resume still fills ${postTelemetry.renderedPageCount} pages (Page ${postTelemetry.renderedPageCount} is ${postTelemetry.lastPageFillPercent}% full). Tell me to tighten/shorten bullets and I'll condense it to fit on 1 page.`;
+          }
+        }
         const assistantMsg = {
           id: `msg_${Date.now()}_a`,
           role: 'assistant',
-          content: aiResult.assistantMessage || 'Done.',
+          content: finalAssistantText,
           modelUsed: state.selectedModelId || 'gemini-3.5-flash-lite',
+          sawPreviewPages: usedVisionPages,
+          autoFitAfterApply: Boolean(shouldRunOnePageFit && hasEdit),
           designAction:
             appliedDesignChanges.length > 0
               ? { summary: appliedDesignChanges, previousState: prevDesignState, undone: false }
@@ -5032,6 +5703,14 @@ ALWAYS respond strictly in valid JSON:
 
           // Commit validated changes to the live resume object & IndexedDB
           Object.assign(resume, clonedResume);
+          let postFitNote = '';
+          if (msg.autoFitAfterApply) {
+            const fitRes = autoFitResumeToOnePage(resume);
+            syncDesignControls(resume);
+            postFitNote = fitRes.fitted
+              ? ` · Auto-fitted to 1 page ✓`
+              : ` · Now ${fitRes.endPages} pages (tightest legible spacing applied)`;
+          }
           await persistResume(resume);
 
           msg.editStatus = 'applied';
@@ -5041,7 +5720,7 @@ ALWAYS respond strictly in valid JSON:
           renderPreviewPanel();
           if (state.editorOpen) renderStructuredEditor();
           renderChatPanel();
-          showStatusBanner('success', `Applied approved changes to: ${changedSections.join(', ')}. Live Preview updated.`);
+          showStatusBanner('success', `Applied approved changes to: ${changedSections.join(', ')}.${postFitNote}`);
           return;
         }
 
@@ -5104,6 +5783,7 @@ ALWAYS respond strictly in valid JSON:
 
       quickBar.classList.remove('hidden');
       quickBar.classList.add('flex');
+      syncAiVisionToggleUI();
 
       const messages = state.conversations[resume.id] || [];
       const rememberedCount = messages.filter((m) => !m.isError).length;
@@ -5140,7 +5820,7 @@ ALWAYS respond strictly in valid JSON:
                 : ''
             }
             <p class="whitespace-pre-wrap">${escapeHtml(m.content)}</p>
-            ${m.modelUsed ? `<p class="mt-2 text-[11px] text-slate-400">Model: ${escapeHtml(m.modelUsed)}</p>` : ''}
+            ${m.modelUsed ? `<div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400"><span>Model: ${escapeHtml(m.modelUsed)}</span>${m.sawPreviewPages > 0 ? `<span class="inline-flex items-center gap-1 rounded-full bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800/80 px-1.5 py-0.5 text-[9.5px] font-medium text-purple-700 dark:text-purple-300" title="AI inspected live rendered preview screenshots + DOM telemetry">👁 Saw ${m.sawPreviewPages}p live preview</span>` : ''}</div>` : ''}
           </div>`;
 
         if (m.designAction && Array.isArray(m.designAction.summary) && m.designAction.summary.length > 0) {
@@ -11728,14 +12408,25 @@ ALWAYS respond strictly in valid JSON:
       }
     }
 
-    function buildMovableControlsHtml(moveId, label, isMoved) {
+    function buildMovableControlsHtml(moveId, label, isMoved, currentPageIdx = 0, totalPages = 1) {
       const safeId = escapeHtml(moveId);
       const safeLabel = escapeHtml(label);
+      let pageBtnsHtml = '';
+      if (totalPages > 1) {
+        if (currentPageIdx > 0) {
+          pageBtnsHtml += `<button type="button" class="movable-drag-bar-btn" style="background:rgba(16,185,129,0.55);" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); moveSectionToPage('${safeId}', ${currentPageIdx - 1})" title="Move ${safeLabel} to Page ${currentPageIdx}">↑ P${currentPageIdx}</button>`;
+        }
+        if (currentPageIdx < totalPages - 1) {
+          pageBtnsHtml += `<button type="button" class="movable-drag-bar-btn" style="background:rgba(14,165,233,0.55);" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); moveSectionToPage('${safeId}', ${currentPageIdx + 1})" title="Move ${safeLabel} to Page ${currentPageIdx + 2}">↓ P${currentPageIdx + 2}</button>`;
+        }
+      }
       return `
-        <div class="wysiwyg-only movable-drag-bar" onpointerdown="handleDragBarLongPressDown(event, '${safeId}')" title="Tap to select · Press &amp; hold (300ms) to drag ${safeLabel} anywhere on the paper">
+        <div class="wysiwyg-only movable-drag-bar" onpointerdown="handleDragBarLongPressDown(event, '${safeId}')" title="Tap to select · Press &amp; hold (300ms) to drag ${safeLabel} anywhere (including across pages!)">
           <span style="opacity:0.85; font-size:10px; line-height:1;">⋮⋮</span>
           <span>${safeLabel}</span>
           <span class="movable-hold-hint">· Hold to drag</span>
+          ${pageBtnsHtml}
+          <button type="button" class="movable-drag-bar-btn" style="background:rgba(139,92,246,0.55);" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); aiPolishCanvasSection('${safeId}', '${safeLabel}')" title="Polish ${safeLabel} with RESUMATE AI (sees live preview)">✨ AI</button>
           ${
             isMoved
               ? `<button type="button" class="movable-drag-bar-btn" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); bringSectionToFront('${safeId}')" title="Bring section to front">↑</button>
@@ -11753,11 +12444,12 @@ ALWAYS respond strictly in valid JSON:
       const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
       const savedMap = (resume.sectionPositions && resume.sectionPositions[tpl]) || {};
 
-      return rawPages.map((pageHtml, pageIdx) => {
+      // STAGE 1: Parse ALL pages together and discover deterministic section boxes on every page
+      const pageModels = rawPages.map((pageHtml, pageIdx) => {
         const host = document.createElement('div');
         host.innerHTML = pageHtml;
         const sheet = host.querySelector('.physical-paper-sheet');
-        if (!sheet) return pageHtml;
+        if (!sheet) return { host, sheet: null, pageIdx, rawHtml: pageHtml, candidates: [] };
         sheet.setAttribute('data-page-index', String(pageIdx));
 
         const usedCounts = {};
@@ -11768,38 +12460,30 @@ ALWAYS respond strictly in valid JSON:
           return `p${pageIdx}::${clean}${suffix}`;
         };
 
-        // PASS 1: Group adjacent siblings sharing the same [data-sec-group] into a single movable box
+        // PASS 1: Group adjacent siblings sharing the same [data-sec-group]
         const groupNodes = Array.from(sheet.querySelectorAll('[data-sec-group]'));
         const handledParents = new Set();
         groupNodes.forEach((node) => {
           const parent = node.parentElement;
           if (!parent || handledParents.has(parent)) return;
           handledParents.add(parent);
-
           const children = Array.from(parent.children);
           let i = 0;
           while (i < children.length) {
             const grp = children[i].getAttribute('data-sec-group');
-            if (!grp) {
-              i += 1;
-              continue;
-            }
+            if (!grp) { i += 1; continue; }
             let j = i + 1;
-            while (j < children.length && children[j].getAttribute('data-sec-group') === grp) {
-              j += 1;
-            }
+            while (j < children.length && children[j].getAttribute('data-sec-group') === grp) j += 1;
             const wrapper = document.createElement('div');
             wrapper.className = 'movable-section-box';
             wrapper.setAttribute('data-move-role', grp);
             parent.insertBefore(wrapper, children[i]);
-            for (let k = i; k < j; k += 1) {
-              wrapper.appendChild(children[k]);
-            }
+            for (let k = i; k < j; k += 1) wrapper.appendChild(children[k]);
             i = j;
           }
         });
 
-        // PASS 2: Register explicitly tagged [data-move-role] elements
+        // PASS 2–4: Register explicit [data-move-role], <header>, and custom sidebar/column blocks
         const candidates = [];
         const addCandidate = (el, role) => {
           if (!el || el === sheet || el.hasAttribute('data-move-registered')) return;
@@ -11807,7 +12491,14 @@ ALWAYS respond strictly in valid JSON:
           if (el.querySelector('[data-move-registered="1"]')) return;
           el.setAttribute('data-move-registered', '1');
           el.classList.add('movable-section-box');
-          candidates.push({ el, role: role || inferRoleFromElement(el) || 'section' });
+          const resolvedRole = role || inferRoleFromElement(el) || 'section';
+          candidates.push({
+            el,
+            role: resolvedRole,
+            moveId: allocMoveId(resolvedRole),
+            label: getLabelForMoveRole(resolvedRole),
+            originPageIdx: pageIdx,
+          });
         };
 
         Array.from(sheet.querySelectorAll('[data-move-role]')).forEach((el) => {
@@ -11815,13 +12506,11 @@ ALWAYS respond strictly in valid JSON:
           addCandidate(el, el.getAttribute('data-move-role'));
         });
 
-        // PASS 3: Register <header> blocks that didn't already split into inner [data-move-role] blocks
         Array.from(sheet.querySelectorAll('header')).forEach((hdr) => {
           if (hdr.querySelector('[data-move-registered="1"]') || hdr.closest('[data-move-registered="1"]')) return;
           addCandidate(hdr, 'header');
         });
 
-        // PASS 4: Auto-discover custom sidebar & column card blocks across all 34 templates
         const allContainers = Array.from(sheet.querySelectorAll('aside, div'));
         allContainers.forEach((container) => {
           if (container === sheet || container.closest('[data-move-registered="1"]')) return;
@@ -11844,28 +12533,68 @@ ALWAYS respond strictly in valid JSON:
               if (childRoles.length >= 2) return;
             }
             const inferred = inferRoleFromElement(child);
-            if (inferred) {
-              addCandidate(child, inferred);
-            }
+            if (inferred) addCandidate(child, inferred);
           });
         });
 
-        // PASS 5: Apply deterministic move IDs, saved coordinates, anti-clipping, and Edit Mode handles
-        candidates.forEach(({ el, role }) => {
-          const moveId = allocMoveId(role);
-          const label = getLabelForMoveRole(role);
+        return { host, sheet, pageIdx, rawHtml: pageHtml, candidates };
+      });
+
+      // STAGE 2: Apply saved same-page OR cross-page positions across ALL sheets
+      const movedOffCounts = new Array(pageModels.length).fill(0);
+      const placedItems = [];
+
+      pageModels.forEach((pm) => {
+        if (!pm.sheet) return;
+        pm.candidates.forEach((item) => {
+          const { el, moveId, label, originPageIdx } = item;
           const saved = savedMap[moveId];
+          const hasAbsPlacement = Boolean(
+            saved && Number.isFinite(Number(saved.absX)) && Number.isFinite(Number(saved.absY))
+          );
+          const hasTargetPage = Boolean(saved && Number.isInteger(Number(saved.targetPage)));
+          const destPageIdx = hasTargetPage
+            ? Math.max(0, Math.min(pageModels.length - 1, Number(saved.targetPage)))
+            : originPageIdx;
+          const isCrossPage = destPageIdx !== originPageIdx;
           const isMoved = Boolean(
             saved &&
-              ((Number(saved.x) || 0) !== 0 ||
+              (isCrossPage ||
+                hasAbsPlacement ||
+                (Number(saved.x) || 0) !== 0 ||
                 (Number(saved.y) || 0) !== 0 ||
                 (Number.isFinite(Number(saved.w)) && Number(saved.w) >= 110))
           );
 
           el.setAttribute('data-move-id', moveId);
           el.setAttribute('data-move-label', label);
+          el.setAttribute('data-origin-page', String(originPageIdx));
 
-          if (isMoved) {
+          if (isCrossPage || hasAbsPlacement) {
+            const destModel = pageModels[destPageIdx] || pm;
+            const destSheet = destModel.sheet || pm.sheet;
+            if (isCrossPage && el.parentElement) {
+              el.parentElement.removeChild(el);
+              movedOffCounts[originPageIdx] += 1;
+            }
+            if (destSheet && el.parentElement !== destSheet) {
+              destSheet.appendChild(el);
+            }
+            const ax = Number.isFinite(Number(saved.absX)) ? Math.round(Number(saved.absX)) : Math.round((resume.designSettings?.marginLeft ?? 0.5) * CSS_DPI);
+            const ay = Number.isFinite(Number(saved.absY)) ? Math.round(Number(saved.absY)) : Math.round((resume.designSettings?.marginTop ?? 0.5) * CSS_DPI);
+            el.style.position = 'absolute';
+            el.style.left = `${ax}px`;
+            el.style.top = `${ay}px`;
+            el.style.margin = '0';
+            el.style.zIndex = String(saved.z || 28);
+            el.style.boxSizing = 'border-box';
+            if (Number.isFinite(Number(saved.w)) && Number(saved.w) >= 110) {
+              el.style.width = `${Math.round(Number(saved.w))}px`;
+              el.style.maxWidth = 'none';
+            }
+            el.setAttribute('data-is-moved', '1');
+            el.setAttribute('data-pos-mode', 'abs');
+          } else if (isMoved) {
             el.style.position = 'relative';
             if (saved.x) el.style.left = `${Math.round(Number(saved.x))}px`;
             if (saved.y) el.style.top = `${Math.round(Number(saved.y))}px`;
@@ -11877,41 +12606,237 @@ ALWAYS respond strictly in valid JSON:
               el.style.boxSizing = 'border-box';
             }
             el.setAttribute('data-is-moved', '1');
-            unlockAncestorOverflowForMoved(el, sheet);
+            unlockAncestorOverflowForMoved(el, pm.sheet);
           }
 
-          if (editable) {
-            el.setAttribute('onpointerdown', `handleSectionBoxPointerDown(event, '${moveId}')`);
-            el.insertAdjacentHTML('afterbegin', buildMovableControlsHtml(moveId, label, isMoved));
-            if (state.selectedMoveId === moveId) {
-              el.classList.add('is-selected-movable');
-            }
-          }
           el.removeAttribute('data-move-registered');
+          placedItems.push({ el, moveId, label, isMoved, destPageIdx });
         });
 
-        // PASS 6: Apply saved free-move offset to independent Profile Photo wrapper (`p{pageIdx}::photo`)
-        const photoWrapper = sheet.querySelector('[data-photo-wrapper="1"]');
+        // Independent Profile Photo wrapper (`p{pageIdx}::photo`) — also supports cross-page!
+        const photoWrapper = pm.sheet.querySelector('[data-photo-wrapper="1"]');
         if (photoWrapper) {
-          const photoMoveId = `p${pageIdx}::photo`;
+          const photoMoveId = `p${pm.pageIdx}::photo`;
           photoWrapper.setAttribute('data-photo-move-id', photoMoveId);
           const pSaved = savedMap[photoMoveId];
-          if (pSaved && ((Number(pSaved.x) || 0) !== 0 || (Number(pSaved.y) || 0) !== 0)) {
-            photoWrapper.style.position = 'relative';
-            if (pSaved.x) photoWrapper.style.left = `${Math.round(Number(pSaved.x))}px`;
-            if (pSaved.y) photoWrapper.style.top = `${Math.round(Number(pSaved.y))}px`;
-            photoWrapper.style.zIndex = String(pSaved.z || 35);
-            unlockAncestorOverflowForMoved(photoWrapper, sheet);
+          if (pSaved) {
+            const pHasAbs = Number.isFinite(Number(pSaved.absX)) && Number.isFinite(Number(pSaved.absY));
+            const pDest = Number.isInteger(Number(pSaved.targetPage))
+              ? Math.max(0, Math.min(pageModels.length - 1, Number(pSaved.targetPage)))
+              : pm.pageIdx;
+            if (pDest !== pm.pageIdx || pHasAbs) {
+              const destSheet = pageModels[pDest]?.sheet || pm.sheet;
+              if (pDest !== pm.pageIdx && photoWrapper.parentElement) {
+                photoWrapper.parentElement.removeChild(photoWrapper);
+              }
+              if (destSheet && photoWrapper.parentElement !== destSheet) destSheet.appendChild(photoWrapper);
+              photoWrapper.style.position = 'absolute';
+              photoWrapper.style.left = `${Math.round(Number(pSaved.absX) || 40)}px`;
+              photoWrapper.style.top = `${Math.round(Number(pSaved.absY) || 40)}px`;
+              photoWrapper.style.zIndex = String(pSaved.z || 40);
+            } else if ((Number(pSaved.x) || 0) !== 0 || (Number(pSaved.y) || 0) !== 0) {
+              photoWrapper.style.position = 'relative';
+              if (pSaved.x) photoWrapper.style.left = `${Math.round(Number(pSaved.x))}px`;
+              if (pSaved.y) photoWrapper.style.top = `${Math.round(Number(pSaved.y))}px`;
+              photoWrapper.style.zIndex = String(pSaved.z || 35);
+              unlockAncestorOverflowForMoved(photoWrapper, pm.sheet);
+            }
           }
         }
+      });
 
-        return host.innerHTML;
+      // STAGE 3: Auto-prune empty trailing pages when ALL their sections were moved to an earlier page!
+      while (pageModels.length > 1) {
+        const lastIdx = pageModels.length - 1;
+        const lastModel = pageModels[lastIdx];
+        if (!lastModel.sheet) break;
+        const remainingBoxes = lastModel.sheet.querySelectorAll('.movable-section-box').length;
+        if (remainingBoxes === 0 && movedOffCounts[lastIdx] > 0) {
+          pageModels.pop();
+        } else {
+          break;
+        }
+      }
+
+      // STAGE 4: Inject interactive handles (with live ↑P1 / ↓P2 buttons) + Move Mode keyboard lock
+      const finalPageCount = pageModels.length;
+      if (editable) {
+        placedItems.forEach(({ el, moveId, label, isMoved, destPageIdx }) => {
+          if (destPageIdx >= finalPageCount) return;
+          el.setAttribute('onpointerdown', `handleSectionBoxPointerDown(event, '${moveId}')`);
+          el.insertAdjacentHTML('afterbegin', buildMovableControlsHtml(moveId, label, isMoved, destPageIdx, finalPageCount));
+          if (state.selectedMoveId === moveId) {
+            el.classList.add('is-selected-movable');
+          }
+        });
+      }
+
+      return pageModels.map((pm, idx) => {
+        if (!pm.sheet) return pm.rawHtml;
+        pm.sheet.setAttribute('data-page-index', String(idx));
+        if (editable && state.moveSectionsMode) {
+          pm.sheet.querySelectorAll('[contenteditable]').forEach((field) => {
+            field.setAttribute('contenteditable', 'false');
+            field.setAttribute('inputmode', 'none');
+            field.setAttribute('tabindex', '-1');
+            field.removeAttribute('spellcheck');
+          });
+        }
+        return pm.host.innerHTML;
       });
     }
 
     function buildPaginatedPagesHtml(resume, paper, marginIn = 0.6, editable = true) {
       const rawPages = buildPaginatedPagesHtmlRaw(resume, paper, marginIn, editable);
       return applyMovableSectionLayoutToPages(rawPages, resume, paper, editable);
+    }
+
+    // Quick 1-click button to move a section onto another page (e.g. Page 2 -> Page 1 open space!)
+    async function moveSectionToPage(moveId, destPageIdx) {
+      const resume = getSelectedResume();
+      if (!resume) return;
+      const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
+      const snap = measureResumeLayoutTelemetry(resume);
+      const targetPage = Math.max(0, Math.min(snap.telemetry.renderedPageCount - 1, Number(destPageIdx) || 0));
+      const curSec = snap.sectionsLayout.find((s) => s.moveId === moveId);
+      const paper = snap.paper;
+      const d = resume.designSettings || DEFAULT_DESIGN_SETTINGS;
+      const mL = Math.round((d.marginLeft ?? 0.5) * CSS_DPI);
+      const mT = Math.round((d.marginTop ?? 0.5) * CSS_DPI);
+
+      let absX = mL;
+      let absY = mT;
+      let width = curSec ? Math.min(paper.widthPx - mL * 2, Math.max(180, curSec.width)) : 280;
+
+      // If moving onto Page 1, smart-place inside the best open whitespace pocket on Page 1!
+      if (targetPage === 0 && snap.page1OpenPockets && snap.page1OpenPockets.length > 0) {
+        const bestPocket = snap.page1OpenPockets.slice().sort((a, b) => b.availableHeight - a.availableHeight)[0];
+        absX = Math.round(bestPocket.x);
+        absY = Math.round(bestPocket.y);
+        width = Math.round(Math.min(bestPocket.width, Math.max(200, width)));
+      } else {
+        // Stack neatly below existing blocks on the destination page
+        const destBoxes = snap.sectionsLayout.filter((s) => s.pageIndex === targetPage && s.moveId !== moveId);
+        const maxBot = destBoxes.reduce((m, b) => Math.max(m, b.bottom), mT);
+        absY = Math.min(paper.heightPx - 120, maxBot + 14);
+      }
+
+      pushUndoSnapshot(resume);
+      resume.sectionPositions = resume.sectionPositions || {};
+      resume.sectionPositions[tpl] = resume.sectionPositions[tpl] || {};
+      const maxZ = Object.values(resume.sectionPositions[tpl]).reduce((m, p) => Math.max(m, Number(p?.z) || 24), 24);
+      resume.sectionPositions[tpl][moveId] = {
+        targetPage,
+        absX,
+        absY,
+        w: width,
+        z: maxZ + 1,
+      };
+      state.selectedMoveId = moveId;
+      await persistResume(resume);
+      renderPreviewPanel();
+      showStatusBanner('success', `Moved "${curSec?.label || 'Section'}" to Page ${targetPage + 1} — long-press to fine-tune placement or press Ctrl+Z to undo.`);
+    }
+
+    // Apply AI spatial section move/resize/cross-page commands cleanly with strict bounds safety
+    function applyAiSectionAdjustmentsToResume(resume, adjustments, telemetryBundle) {
+      if (!Array.isArray(adjustments) || adjustments.length === 0) return [];
+      const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
+      const paper = telemetryBundle?.paper || PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const layoutList = telemetryBundle?.sectionsLayout || [];
+      const maxPageIdx = Math.max(0, (telemetryBundle?.telemetry?.renderedPageCount || 1) - 1);
+
+      resume.sectionPositions = resume.sectionPositions || {};
+      resume.sectionPositions[tpl] = resume.sectionPositions[tpl] || {};
+      const map = resume.sectionPositions[tpl];
+      let maxZ = Object.values(map).reduce((m, p) => Math.max(m, Number(p?.z) || 24), 24);
+      const logs = [];
+
+      adjustments.forEach((raw) => {
+        if (!raw || typeof raw !== 'object') return;
+        let moveId = String(raw.moveId || raw.sectionId || '').trim();
+        // If AI gave a plain role name like "education" instead of "p1::education", resolve it smartly!
+        if (moveId && !moveId.includes('::')) {
+          const cleanRole = moveId.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+          const match =
+            layoutList.find((s) => s.pageIndex > 0 && s.moveId.endsWith(`::${cleanRole}`)) ||
+            layoutList.find((s) => s.moveId.endsWith(`::${cleanRole}`)) ||
+            layoutList.find((s) => s.label.toLowerCase() === cleanRole);
+          if (match) moveId = match.moveId;
+        }
+        if (!moveId) return;
+
+        const secInfo = layoutList.find((s) => s.moveId === moveId);
+        const label = secInfo?.label || moveId.split('::')[1] || moveId;
+
+        if (raw.reset === true) {
+          if (map[moveId]) {
+            delete map[moveId];
+            logs.push(`Reset ${label} position`);
+          }
+          return;
+        }
+
+        const existing = map[moveId] || {};
+        // Normalize targetPage (support 0-based `targetPage` OR 1-based `page`)
+        let targetPage = undefined;
+        if (raw.targetPage !== undefined && raw.targetPage !== null && Number.isFinite(Number(raw.targetPage))) {
+          targetPage = Math.max(0, Math.min(maxPageIdx, Math.round(Number(raw.targetPage))));
+        } else if (raw.page !== undefined && raw.page !== null && Number.isFinite(Number(raw.page))) {
+          targetPage = Math.max(0, Math.min(maxPageIdx, Math.round(Number(raw.page)) - 1));
+        }
+
+        const hasAbs =
+          (raw.absX !== undefined && Number.isFinite(Number(raw.absX))) ||
+          (raw.absY !== undefined && Number.isFinite(Number(raw.absY))) ||
+          (targetPage !== undefined && secInfo && targetPage !== secInfo.pageIndex);
+
+        const nextW =
+          Number.isFinite(Number(raw.width ?? raw.w))
+            ? Math.round(Math.min(paper.widthPx - 24, Math.max(130, Number(raw.width ?? raw.w))))
+            : existing.w || (secInfo ? Math.round(secInfo.width) : undefined);
+
+        const nextZ = Number.isFinite(Number(raw.z)) ? Math.round(Number(raw.z)) : (existing.z || ++maxZ);
+
+        if (hasAbs) {
+          const curX = Number.isFinite(Number(raw.absX)) ? Number(raw.absX) : (Number.isFinite(Number(existing.absX)) ? Number(existing.absX) : (secInfo?.x ?? 48));
+          const curY = Number.isFinite(Number(raw.absY)) ? Number(raw.absY) : (Number.isFinite(Number(existing.absY)) ? Number(existing.absY) : (secInfo?.y ?? 48));
+          const clampedX = Math.round(Math.max(12, Math.min(paper.widthPx - 120, curX)));
+          const clampedY = Math.round(Math.max(12, Math.min(paper.heightPx - 60, curY)));
+          const destPg = targetPage !== undefined ? targetPage : (Number.isInteger(existing.targetPage) ? existing.targetPage : (secInfo?.pageIndex ?? 0));
+          map[moveId] = {
+            targetPage: destPg,
+            absX: clampedX,
+            absY: clampedY,
+            ...(nextW ? { w: nextW } : {}),
+            z: nextZ,
+          };
+          logs.push(`Moved ${label} → P${destPg + 1} (${clampedX}, ${clampedY})${nextW ? ` W:${nextW}px` : ''}`);
+        } else {
+          const dx = Number.isFinite(Number(raw.dx)) ? Math.round(Number(raw.dx)) : (Number.isFinite(Number(raw.x)) ? Math.round(Number(raw.x)) - (Number(existing.x) || 0) : 0);
+          const dy = Number.isFinite(Number(raw.dy)) ? Math.round(Number(raw.dy)) : (Number.isFinite(Number(raw.y)) ? Math.round(Number(raw.y)) - (Number(existing.y) || 0) : 0);
+          if (Number.isFinite(Number(existing.absX)) && Number.isFinite(Number(existing.absY))) {
+            map[moveId] = {
+              ...existing,
+              absX: Math.round(Math.max(12, Math.min(paper.widthPx - 120, Number(existing.absX) + dx))),
+              absY: Math.round(Math.max(12, Math.min(paper.heightPx - 60, Number(existing.absY) + dy))),
+              ...(nextW ? { w: nextW } : {}),
+              z: nextZ,
+            };
+          } else {
+            map[moveId] = {
+              ...existing,
+              x: (Number(existing.x) || 0) + dx,
+              y: (Number(existing.y) || 0) + dy,
+              ...(nextW ? { w: nextW } : {}),
+              z: nextZ,
+            };
+          }
+          logs.push(`Adjusted ${label} (${dx >= 0 ? '+' : ''}${dx}, ${dy >= 0 ? '+' : ''}${dy})${nextW ? ` W:${nextW}px` : ''}`);
+        }
+      });
+
+      return logs;
     }
 
     function syncMoveModeButtons(hasResume = Boolean(getSelectedResume())) {
@@ -11947,7 +12872,17 @@ ALWAYS respond strictly in valid JSON:
         togglePrintPreviewMode();
       }
       state.moveSectionsMode = typeof forceVal === 'boolean' ? forceVal : !state.moveSectionsMode;
-      if (!state.moveSectionsMode) state.selectedMoveId = null;
+      if (state.moveSectionsMode) {
+        try {
+          if (document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+          }
+          const sel = window.getSelection && window.getSelection();
+          if (sel && sel.rangeCount) sel.removeAllRanges();
+        } catch {}
+      } else {
+        state.selectedMoveId = null;
+      }
       if (state.activeTab !== 'preview') {
         state.activeTab = 'preview';
         applyActiveTabUI();
@@ -11955,7 +12890,7 @@ ALWAYS respond strictly in valid JSON:
       syncMoveModeButtons(true);
       renderPreviewPanel();
       if (state.moveSectionsMode) {
-        showStatusBanner('success', 'Move Mode active — tap a section to select it, then press & hold (tap and hold) to drag it anywhere on the paper. Arrow keys nudge · Esc when done.');
+        showStatusBanner('success', 'Move Mode active (text editing & keyboard locked) — tap a section to select, then press & hold to drag anywhere. Press Done Moving or Esc to edit text again.');
       } else {
         hideStatusBanner();
       }
@@ -12031,7 +12966,11 @@ ALWAYS respond strictly in valid JSON:
       const blockContextMenu = (ctxEvt) => {
         ctxEvt.preventDefault();
       };
+      const blockSelectStart = (selEvt) => {
+        selEvt.preventDefault();
+      };
       window.addEventListener('contextmenu', blockContextMenu, { capture: true });
+      window.addEventListener('selectstart', blockSelectStart, { capture: true });
 
       const cleanupWatch = () => {
         clearTimeout(timer);
@@ -12039,6 +12978,7 @@ ALWAYS respond strictly in valid JSON:
         window.removeEventListener('pointerup', onWatchEnd);
         window.removeEventListener('pointercancel', onWatchEnd);
         window.removeEventListener('contextmenu', blockContextMenu, { capture: true });
+        window.removeEventListener('selectstart', blockSelectStart, { capture: true });
         el.classList.remove('is-holding-section');
         if (ringEl && ringEl.parentNode) ringEl.remove();
         ringEl = null;
@@ -12176,43 +13116,95 @@ ALWAYS respond strictly in valid JSON:
       startSectionDragAt(moveId, event.clientX, event.clientY, event.pointerId);
     }
 
+    function findTargetSheetAtClientPoint(clientX, clientY) {
+      const sheets = Array.from(document.querySelectorAll('#preview-canvas-area .physical-paper-sheet'));
+      for (let i = 0; i < sheets.length; i += 1) {
+        const r = sheets[i].getBoundingClientRect();
+        if (clientY >= r.top - 18 && clientY <= r.bottom + 18 && clientX >= r.left - 60 && clientX <= r.right + 60) {
+          return sheets[i];
+        }
+      }
+      // Fallback to closest vertical sheet
+      let best = null;
+      let bestDist = Infinity;
+      sheets.forEach((sh) => {
+        const r = sh.getBoundingClientRect();
+        const midY = (r.top + r.bottom) / 2;
+        const dist = Math.abs(clientY - midY);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = sh;
+        }
+      });
+      return best;
+    }
+
     function startSectionDragAt(moveId, startClientX, startClientY, pointerId) {
       const resume = getSelectedResume();
       if (!resume) return;
       const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
       const el = document.querySelector(`.physical-paper-sheet .movable-section-box[data-move-id="${CSS.escape(moveId)}"]`);
       if (!el) return;
-      const sheet = el.closest('.physical-paper-sheet');
-      if (!sheet) return;
+      const originSheet = el.closest('.physical-paper-sheet');
+      if (!originSheet) return;
+
+      const paper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const originPageIdx = Number(originSheet.getAttribute('data-page-index') || 0);
+      let activeSheet = originSheet;
+      let activePageIdx = originPageIdx;
 
       selectMovableSection(moveId);
       el.classList.add('is-dragging-section');
-      unlockAncestorOverflowForMoved(el, sheet);
+      originSheet.classList.add('is-cross-page-origin');
+      unlockAncestorOverflowForMoved(el, originSheet);
 
       const existing = resume.sectionPositions?.[tpl]?.[moveId] || {};
+      let isAbsMode = el.getAttribute('data-pos-mode') === 'abs' || el.style.position === 'absolute';
       const startOffX = Number(existing.x) || 0;
       const startOffY = Number(existing.y) || 0;
 
-      const { xLines, yLines, paper, scale, sheetRect } = getSheetSnapTargets(sheet, el, resume);
+      let snapCtx = getSheetSnapTargets(activeSheet, el, resume);
       const elRect0 = el.getBoundingClientRect();
-      const baseLeft0 = (elRect0.left - sheetRect.left) / scale;
-      const baseTop0 = (elRect0.top - sheetRect.top) / scale;
-      const elW = elRect0.width / scale;
-      const elH = elRect0.height / scale;
+      const baseLeft0 = (elRect0.left - snapCtx.sheetRect.left) / snapCtx.scale;
+      const baseTop0 = (elRect0.top - snapCtx.sheetRect.top) / snapCtx.scale;
+      const elW = elRect0.width / snapCtx.scale;
+      const elH = elRect0.height / snapCtx.scale;
+      const grabOffsetInElX = (startClientX - elRect0.left) / snapCtx.scale;
+      const grabOffsetInElY = (startClientY - elRect0.top) / snapCtx.scale;
 
-      el.style.position = 'relative';
+      if (!isAbsMode) el.style.position = 'relative';
       let curX = startOffX;
       let curY = startOffY;
+      let curAbsX = Math.round(baseLeft0);
+      let curAbsY = Math.round(baseTop0);
       let movedAny = false;
 
       const coordsBadge = document.createElement('div');
       coordsBadge.className = 'wysiwyg-only movable-drag-coords';
-      coordsBadge.textContent = `Dragging · ${Math.round(baseLeft0)}px, ${Math.round(baseTop0)}px`;
+      coordsBadge.textContent = `P${activePageIdx + 1} · ${Math.round(baseLeft0)}px, ${Math.round(baseTop0)}px`;
       el.appendChild(coordsBadge);
 
       const SNAP_THRESH = 5;
+      const scrollContainer = document.getElementById('preview-canvas-area');
 
-      // Prevent touch scrolling & context menus while actively dragging
+      const clearCrossPageHighlight = () => {
+        document.querySelectorAll('#preview-canvas-area .physical-paper-sheet').forEach((sh) => {
+          sh.classList.remove('is-cross-page-target');
+          sh.querySelectorAll('.cross-page-drop-banner').forEach((b) => b.remove());
+        });
+      };
+
+      const highlightTargetSheet = (targetSh, targetPgIdx) => {
+        clearCrossPageHighlight();
+        if (targetSh && targetSh !== originSheet) {
+          targetSh.classList.add('is-cross-page-target');
+          const banner = document.createElement('div');
+          banner.className = 'wysiwyg-only cross-page-drop-banner';
+          banner.textContent = `Drop onto Page ${targetPgIdx + 1}`;
+          targetSh.appendChild(banner);
+        }
+      };
+
       const preventTouchScroll = (te) => {
         if (te.cancelable) te.preventDefault();
       };
@@ -12222,17 +13214,59 @@ ALWAYS respond strictly in valid JSON:
 
       const onPointerMove = (mv) => {
         if (pointerId !== undefined && mv.pointerId !== pointerId) return;
-        let rawDx = (mv.clientX - startClientX) / scale;
-        let rawDy = (mv.clientY - startClientY) / scale;
-        if (Math.abs(rawDx) > 2 || Math.abs(rawDy) > 2) movedAny = true;
 
-        if (mv.shiftKey) {
-          if (Math.abs(rawDx) >= Math.abs(rawDy)) rawDy = 0;
-          else rawDx = 0;
+        // Gentle auto-scroll of preview canvas when dragging near top/bottom viewport edge (for cross-page travel!)
+        if (scrollContainer) {
+          const scRect = scrollContainer.getBoundingClientRect();
+          if (mv.clientY < scRect.top + 68) {
+            scrollContainer.scrollTop -= 14;
+          } else if (mv.clientY > scRect.bottom - 68) {
+            scrollContainer.scrollTop += 14;
+          }
         }
 
-        let targetLeft = baseLeft0 + rawDx;
-        let targetTop = baseTop0 + rawDy;
+        // Detect if pointer moved onto a DIFFERENT page sheet!
+        const hitSheet = findTargetSheetAtClientPoint(mv.clientX, mv.clientY);
+        if (hitSheet && hitSheet !== activeSheet) {
+          activeSheet.querySelectorAll('.snap-guide-line').forEach((n) => n.remove());
+          activeSheet = hitSheet;
+          activePageIdx = Number(activeSheet.getAttribute('data-page-index') || 0);
+          isAbsMode = true;
+          movedAny = true;
+          // Live-reparent element right into the destination sheet (inherits 100% identical CSS vars & fonts!)
+          activeSheet.appendChild(el);
+          el.style.position = 'absolute';
+          el.style.width = `${Math.round(elW)}px`;
+          el.style.maxWidth = 'none';
+          el.style.margin = '0';
+          el.style.boxSizing = 'border-box';
+          snapCtx = getSheetSnapTargets(activeSheet, el, resume);
+          highlightTargetSheet(activeSheet, activePageIdx);
+        } else {
+          // Refresh live sheetRect in case auto-scroll shifted viewport coordinates
+          snapCtx.sheetRect = activeSheet.getBoundingClientRect();
+          snapCtx.scale = Math.max(0.2, snapCtx.sheetRect.width / paper.widthPx);
+        }
+
+        const scale = snapCtx.scale;
+        let targetLeft;
+        let targetTop;
+
+        if (isAbsMode) {
+          targetLeft = (mv.clientX - snapCtx.sheetRect.left) / scale - grabOffsetInElX;
+          targetTop = (mv.clientY - snapCtx.sheetRect.top) / scale - grabOffsetInElY;
+          if (Math.hypot(mv.clientX - startClientX, mv.clientY - startClientY) > 3) movedAny = true;
+        } else {
+          let rawDx = (mv.clientX - startClientX) / scale;
+          let rawDy = (mv.clientY - startClientY) / scale;
+          if (Math.abs(rawDx) > 2 || Math.abs(rawDy) > 2) movedAny = true;
+          if (mv.shiftKey) {
+            if (Math.abs(rawDx) >= Math.abs(rawDy)) rawDy = 0;
+            else rawDx = 0;
+          }
+          targetLeft = baseLeft0 + rawDx;
+          targetTop = baseTop0 + rawDy;
+        }
 
         targetLeft = Math.max(-elW + 48, Math.min(paper.widthPx - 48, targetLeft));
         targetTop = Math.max(-elH + 40, Math.min(paper.heightPx - 40, targetTop));
@@ -12241,45 +13275,32 @@ ALWAYS respond strictly in valid JSON:
         let snapLineY = null;
 
         if (!mv.altKey) {
-          for (let i = 0; i < xLines.length; i += 1) {
-            const gx = xLines[i];
-            if (Math.abs(targetLeft - gx) <= SNAP_THRESH) {
-              targetLeft = gx;
-              snapLineX = gx;
-              break;
-            }
-            if (Math.abs(targetLeft + elW - gx) <= SNAP_THRESH) {
-              targetLeft = gx - elW;
-              snapLineX = gx;
-              break;
-            }
-            if (Math.abs(targetLeft + elW / 2 - gx) <= SNAP_THRESH) {
-              targetLeft = gx - elW / 2;
-              snapLineX = gx;
-              break;
-            }
+          for (let i = 0; i < snapCtx.xLines.length; i += 1) {
+            const gx = snapCtx.xLines[i];
+            if (Math.abs(targetLeft - gx) <= SNAP_THRESH) { targetLeft = gx; snapLineX = gx; break; }
+            if (Math.abs(targetLeft + elW - gx) <= SNAP_THRESH) { targetLeft = gx - elW; snapLineX = gx; break; }
+            if (Math.abs(targetLeft + elW / 2 - gx) <= SNAP_THRESH) { targetLeft = gx - elW / 2; snapLineX = gx; break; }
           }
-          for (let i = 0; i < yLines.length; i += 1) {
-            const gy = yLines[i];
-            if (Math.abs(targetTop - gy) <= SNAP_THRESH) {
-              targetTop = gy;
-              snapLineY = gy;
-              break;
-            }
-            if (Math.abs(targetTop + elH - gy) <= SNAP_THRESH) {
-              targetTop = gy - elH;
-              snapLineY = gy;
-              break;
-            }
+          for (let i = 0; i < snapCtx.yLines.length; i += 1) {
+            const gy = snapCtx.yLines[i];
+            if (Math.abs(targetTop - gy) <= SNAP_THRESH) { targetTop = gy; snapLineY = gy; break; }
+            if (Math.abs(targetTop + elH - gy) <= SNAP_THRESH) { targetTop = gy - elH; snapLineY = gy; break; }
           }
         }
 
-        curX = Math.round(startOffX + (targetLeft - baseLeft0));
-        curY = Math.round(startOffY + (targetTop - baseTop0));
-        el.style.left = `${curX}px`;
-        el.style.top = `${curY}px`;
-        coordsBadge.textContent = `${Math.round(targetLeft)}px, ${Math.round(targetTop)}px`;
-        renderSnapGuides(sheet, snapLineX, snapLineY);
+        if (isAbsMode) {
+          curAbsX = Math.round(targetLeft);
+          curAbsY = Math.round(targetTop);
+          el.style.left = `${curAbsX}px`;
+          el.style.top = `${curAbsY}px`;
+        } else {
+          curX = Math.round(startOffX + (targetLeft - baseLeft0));
+          curY = Math.round(startOffY + (targetTop - baseTop0));
+          el.style.left = `${curX}px`;
+          el.style.top = `${curY}px`;
+        }
+        coordsBadge.textContent = `P${activePageIdx + 1} · ${Math.round(targetLeft)}px, ${Math.round(targetTop)}px`;
+        renderSnapGuides(activeSheet, snapLineX, snapLineY);
       };
 
       const onPointerUp = async (up) => {
@@ -12290,21 +13311,33 @@ ALWAYS respond strictly in valid JSON:
         window.removeEventListener('touchmove', preventTouchScroll, { passive: false });
         window.removeEventListener('contextmenu', blockCtx, { capture: true });
         el.classList.remove('is-dragging-section');
+        originSheet.classList.remove('is-cross-page-origin');
+        clearCrossPageHighlight();
         if (coordsBadge.parentNode) coordsBadge.remove();
-        sheet.querySelectorAll('.snap-guide-line').forEach((n) => n.remove());
+        document.querySelectorAll('#preview-canvas-area .snap-guide-line').forEach((n) => n.remove());
         suppressNextClickBriefly();
 
-        if (movedAny && (curX !== startOffX || curY !== startOffY)) {
+        if (movedAny) {
           pushUndoSnapshot(resume);
           resume.sectionPositions = resume.sectionPositions || {};
           resume.sectionPositions[tpl] = resume.sectionPositions[tpl] || {};
           const maxZ = Object.values(resume.sectionPositions[tpl]).reduce((m, p) => Math.max(m, Number(p?.z) || 20), 20);
-          resume.sectionPositions[tpl][moveId] = {
-            ...existing,
-            x: curX,
-            y: curY,
-            z: existing.z || maxZ + 1,
-          };
+          if (isAbsMode) {
+            resume.sectionPositions[tpl][moveId] = {
+              targetPage: activePageIdx,
+              absX: curAbsX,
+              absY: curAbsY,
+              w: Math.round(existing.w || elW),
+              z: existing.z || maxZ + 1,
+            };
+          } else if (curX !== startOffX || curY !== startOffY) {
+            resume.sectionPositions[tpl][moveId] = {
+              ...existing,
+              x: curX,
+              y: curY,
+              z: existing.z || maxZ + 1,
+            };
+          }
           await persistResume(resume);
           renderPreviewPanel();
         }
@@ -12475,12 +13508,21 @@ ALWAYS respond strictly in valid JSON:
       resume.sectionPositions = resume.sectionPositions || {};
       resume.sectionPositions[tpl] = resume.sectionPositions[tpl] || {};
       const existing = resume.sectionPositions[tpl][moveId] || {};
-      resume.sectionPositions[tpl][moveId] = {
-        ...existing,
-        x: (Number(existing.x) || 0) + dx,
-        y: (Number(existing.y) || 0) + dy,
-        z: existing.z || 22,
-      };
+      if (Number.isFinite(Number(existing.absX)) && Number.isFinite(Number(existing.absY))) {
+        resume.sectionPositions[tpl][moveId] = {
+          ...existing,
+          absX: Math.round(Number(existing.absX) + dx),
+          absY: Math.round(Number(existing.absY) + dy),
+          z: existing.z || 28,
+        };
+      } else {
+        resume.sectionPositions[tpl][moveId] = {
+          ...existing,
+          x: (Number(existing.x) || 0) + dx,
+          y: (Number(existing.y) || 0) + dy,
+          z: existing.z || 22,
+        };
+      }
       await persistResume(resume);
       renderPreviewPanel();
     }
@@ -13375,7 +14417,10 @@ ALWAYS respond strictly in valid JSON:
         </div>
 
         <div class="space-y-1.5">
-          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Resume File Title</label>
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Resume File Title</label>
+            <button type="button" onclick="aiRefineStructuredSection('title')" class="text-[10.5px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">✨ AI Name</button>
+          </div>
           <input type="text" value="${escapeHtml(resume.title)}" oninput="updateResumeField('title', this.value)" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs" />
         </div>
 
@@ -13413,7 +14458,7 @@ ALWAYS respond strictly in valid JSON:
         </div>
 
         <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3 space-y-2">
-          <p class="text-xs font-semibold text-slate-800 dark:text-slate-200">Section Order & Visibility</p>
+          <div class="flex items-center justify-between"><p class="text-xs font-semibold text-slate-800 dark:text-slate-200">Section Order &amp; Visibility</p><button type="button" onclick="aiOptimizeSectionOrder()" class="text-[10.5px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">✨ AI Optimize</button></div>
           <div class="space-y-1">
             ${(resume.sectionOrder || DEFAULT_SECTION_ORDER)
               .map((secKey, sIdx, arr) => {
@@ -13435,7 +14480,7 @@ ALWAYS respond strictly in valid JSON:
         </div>
 
         <div class="space-y-2">
-          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Personal Details</p>
+          <div class="flex items-center justify-between"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Personal Details</p><button type="button" onclick="aiRefineStructuredSection('headline')" class="text-[10.5px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">✨ AI Headline</button></div>
           <input type="text" placeholder="Full Name" value="${escapeHtml(info.fullName)}" oninput="updatePersonalField('fullName', this.value)" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs" />
           <input type="text" placeholder="Professional Headline" value="${escapeHtml(info.headline)}" oninput="updatePersonalField('headline', this.value)" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs" />
           <div class="grid grid-cols-2 gap-2">
@@ -13448,7 +14493,7 @@ ALWAYS respond strictly in valid JSON:
         </div>
 
         <div class="space-y-1.5">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Professional Summary</label>
+          <div class="flex items-center justify-between"><label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Professional Summary</label><button type="button" onclick="aiRefineStructuredSection('summary')" class="text-[10.5px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">✨ AI Rewrite</button></div>
           <textarea rows="4" oninput="updateResumeField('summary', this.value)" placeholder="Write your verified career summary..." class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-xs leading-relaxed">${escapeHtml(resume.summary || '')}</textarea>
         </div>
 
@@ -13463,7 +14508,10 @@ ALWAYS respond strictly in valid JSON:
               <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3 space-y-2">
                 <div class="flex justify-between items-center">
                   <span class="text-[11px] font-semibold text-slate-500">Role #${idx + 1}</span>
-                  <button type="button" onclick="removeExperience(${idx})" class="text-[11px] text-red-600 hover:underline">Remove</button>
+                  <div class="flex items-center gap-2.5">
+                    <button type="button" onclick="aiPolishSingleExperience(${idx})" class="text-[10.5px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">✨ AI Polish</button>
+                    <button type="button" onclick="removeExperience(${idx})" class="text-[11px] text-red-600 hover:underline">Remove</button>
+                  </div>
                 </div>
                 <input type="text" placeholder="Job Title" value="${escapeHtml(exp.position)}" oninput="updateExperience(${idx}, 'position', this.value)" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2.5 py-1.5 text-xs" />
                 <input type="text" placeholder="Company" value="${escapeHtml(exp.company)}" oninput="updateExperience(${idx}, 'company', this.value)" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2.5 py-1.5 text-xs" />
@@ -13504,7 +14552,10 @@ ALWAYS respond strictly in valid JSON:
         <div class="space-y-2.5">
           <div class="flex items-center justify-between">
             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Skills (${(resume.skills || []).length})</p>
-            <button type="button" onclick="addSkillGroup()" class="text-xs font-medium text-purple-700 dark:text-purple-400 hover:underline">+ Add Skill Group</button>
+            <div class="flex items-center gap-2.5">
+              <button type="button" onclick="aiRefineStructuredSection('skills')" class="text-[10.5px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">✨ AI Organize</button>
+              <button type="button" onclick="addSkillGroup()" class="text-xs font-medium text-purple-700 dark:text-purple-400 hover:underline">+ Add Group</button>
+            </div>
           </div>
           ${(resume.skills || [])
             .map(
@@ -13531,7 +14582,10 @@ ALWAYS respond strictly in valid JSON:
               <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3 space-y-2">
                 <div class="flex justify-between items-center">
                   <span class="text-[11px] font-semibold text-slate-500">Project #${idx + 1}</span>
-                  <button type="button" onclick="removeProject(${idx})" class="text-[11px] text-red-600 hover:underline">Remove</button>
+                  <div class="flex items-center gap-2.5">
+                    <button type="button" onclick="aiPolishSingleProject(${idx})" class="text-[10.5px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">✨ AI Polish</button>
+                    <button type="button" onclick="removeProject(${idx})" class="text-[11px] text-red-600 hover:underline">Remove</button>
+                  </div>
                 </div>
                 <input type="text" placeholder="Project Name" value="${escapeHtml(p.name)}" oninput="updateProject(${idx}, 'name', this.value)" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2.5 py-1.5 text-xs" />
                 <div class="grid grid-cols-2 gap-2">
@@ -13889,7 +14943,13 @@ Return valid JSON:
                   </ul>
                 </div>`
               : ''
-          }`;
+          }
+          <div class="pt-2 flex justify-end">
+            <button type="button" onclick="aiTailorResumeFromAts()" class="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-700 shadow-sm">
+              <span>✨ AI Auto-Tailor Resume to Fix Gaps in Chat</span>
+            </button>
+          </div>`;
+        state._lastAtsReport = { jd, data };
       } catch (err) {
         output.innerHTML = `<p class="text-red-600">ATS Audit Error: ${escapeHtml(err.message)}</p>`;
       }
@@ -13919,7 +14979,7 @@ Return valid JSON:
           : `(No specific job description provided — write a versatile, professional general cover letter aligned to the candidate's resume headline "${resume.personalInfo?.headline || resume.title || 'Target Role'}" with clear placeholders like [Company Name] where appropriate.)`;
 
         const prompt = `
-Write a tailored, professional cover letter strictly grounded in the candidate's ACTUAL RESUME and the TARGET ROLE / JOB DESCRIPTION below (which may be a full posting, a short job title/company, or omitted for a general cover letter).
+Write a tailored, ${document.getElementById('cl-tone-select')?.value || 'executive'}-tone professional cover letter strictly grounded in the candidate's ACTUAL RESUME and the TARGET ROLE / JOB DESCRIPTION below (which may be a full posting, a short job title/company, or omitted for a general cover letter).
 CRITICAL RULE: Never invent experience, titles, employers, certifications, or achievements not explicitly present in the resume.
 
 RESUME:
@@ -13954,6 +15014,531 @@ Return valid JSON:
       } catch {
         textarea.select();
         showStatusBanner('warning', 'Text selected. Press Ctrl+C / Cmd+C to copy.');
+      }
+    }
+
+    // =========================================================================
+    // 9B. FULL-APP AI INTEGRATIONS (CANVAS, DESIGN, TEMPLATES, SECTIONS, EXPORT,
+    //     ATS, COVER LETTER, VERSIONS, INTERVIEW COACH & LINKEDIN SYNC)
+    // =========================================================================
+    function getCleanResumeJsonForAi(resume) {
+      const pi = { ...(resume?.personalInfo || {}) };
+      delete pi.photoDataUrl;
+      return JSON.stringify({
+        title: resume?.title || '',
+        templateId: resume?.templateId || 'modern-minimal',
+        paperSize: resume?.paperSize || 'letter',
+        sectionOrder: resume?.sectionOrder || DEFAULT_SECTION_ORDER,
+        hiddenSections: resume?.hiddenSections || [],
+        designSettings: resume?.designSettings || DEFAULT_DESIGN_SETTINGS,
+        personalInfo: pi,
+        summary: resume?.summary || '',
+        experiences: resume?.experiences || [],
+        education: resume?.education || [],
+        skills: resume?.skills || [],
+        projects: resume?.projects || [],
+        certifications: resume?.certifications || [],
+        extraSections: resume?.extraSections || [],
+      });
+    }
+
+    function ensureAiReadyForTool() {
+      const resume = getSelectedResume();
+      if (!resume) {
+        showStatusBanner('error', 'Create or import a resume first so RESUMATE AI has your real data.');
+        return null;
+      }
+      if (!state.apiKey) {
+        openModal('config-modal');
+        return null;
+      }
+      return resume;
+    }
+
+    // 1. ON-CANVAS SECTION BAR ✨ AI POLISH (sees live preview automatically via Chat!)
+    function aiPolishCanvasSection(moveId, label) {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      const role = String(moveId || '').split('::')[1]?.replace(/_\d+$/, '') || 'section';
+      const promptMap = {
+        header: `Inspect my live resume preview header (${label}) and propose a sharper, cleaner professional headline & header presentation using only my real facts.`,
+        summary: `Look at my live resume preview and polish my Summary section so it is punchier, recruiter-ready, and fits cleanly in its visual block using only my real facts.`,
+        experience: `Look at my live resume preview and strengthen my Experience bullets for clarity, action verbs, and impact without inventing any jobs, dates, or numbers.`,
+        skills: `Look at my live resume preview and organize my Skills cleanly into focused categories (strictly 1 skill per bullet, no invented skills).`,
+        education: `Review my Education section on the live preview for clean formatting, clarity, and consistency.`,
+        projects: `Look at my live resume preview and tighten my Projects descriptions so each highlight is vivid, concise, and outcome-focused using only my real facts.`,
+        certifications: `Review and format my Certifications cleanly for consistency and recruiter clarity.`,
+        contact: `Check my Contact block on the live preview for completeness, formatting consistency, and clean visual spacing.`,
+      };
+      const prompt = promptMap[role] || `Look at my live resume preview and improve the "${label}" section for clarity, impact, and visual fit using only my real facts.`;
+      if (state.moveSectionsMode) toggleMoveSectionsMode(false);
+      triggerQuickPrompt('section_polish', prompt);
+    }
+
+    // 2. DESIGN STUDIO PRO: ✨ AI AUTO-STYLE (Inspects Live Preview + Profession -> Applies Font/Color/Spacing!)
+    async function aiAutoStyleDesign() {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      showStatusBanner('warning', 'AI Design Director is inspecting your live preview and crafting a tailored style...');
+      try {
+        const telemetryBundle = measureResumeLayoutTelemetry(resume);
+        let previewImgs = [];
+        if (state.aiPreviewVision !== false) {
+          try { previewImgs = await captureLivePreviewImagesForAi(resume, telemetryBundle); } catch {}
+        }
+        const prompt = `You are a senior typographer & resume art director. Inspect the candidate's resume data, current template ("${resume.templateId}"), live preview screenshot(s), and layout telemetry (${JSON.stringify(telemetryBundle.telemetry)}).
+Choose an elevated, cohesive, high-contrast visual style (fonts, colors, spacing) tailored to their profession and template without breaking readability.
+Allowed fonts: ${ALLOWED_FONTS.join(', ')}.
+Return STRICT valid JSON:
+{
+  "rationale": "1-sentence explanation of the styling choices",
+  "designSettings": {
+    "fontFamily": "",
+    "headingFontFamily": "",
+    "accentColor": "#rrggbb",
+    "fontSize": 11.2,
+    "lineHeight": 1.44,
+    "sectionGap": 12,
+    "itemGap": 8
+  }
+}
+RESUME: ${getCleanResumeJsonForAi(resume)}`;
+        const inlineParts = previewImgs.slice(0, 2).map((img) => ({ inlineData: { mimeType: img.mimeType, data: img.data } }));
+        let res;
+        try {
+          res = await callGeminiJson(prompt, 0.25, inlineParts);
+        } catch {
+          res = await callGeminiJson(prompt, 0.25, []);
+        }
+        const cleanPatch = sanitizeDesignPatch(res?.designSettings);
+        if (Object.keys(cleanPatch).length === 0) {
+          showStatusBanner('warning', 'AI kept your current styling as optimal.');
+          return;
+        }
+        pushUndoSnapshot(resume);
+        resume.designSettings = { ...resume.designSettings, ...cleanPatch };
+        await persistResume(resume);
+        syncDesignControls(resume);
+        renderPreviewPanel();
+        showStatusBanner('success', `AI Auto-Style applied: ${res.rationale || 'Refined typography, color & spacing.'} (Press Ctrl+Z to undo)`);
+      } catch (err) {
+        showStatusBanner('error', `AI Auto-Style failed: ${err.message}`);
+      }
+    }
+
+    function aiVisualDesignCritique() {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      toggleSideDrawer(false);
+      triggerQuickPrompt(
+        'visual_critique',
+        'Inspect my live rendered resume preview screenshot carefully. Give me a candid graphic-design critique covering visual hierarchy, whitespace, alignment, typography contrast, and page fit — and apply safe spacing/styling polish directly if helpful.'
+      );
+    }
+
+    // 3. TEMPLATE GALLERY: ✨ AI PICK BEST FIT TEMPLATES (Top 4 of 59 with 1-click Apply!)
+    async function aiRecommendTemplates() {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      const box = document.getElementById('tpl-ai-recommendations');
+      if (!box) return;
+      box.classList.remove('hidden');
+      box.innerHTML = `<div class="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-300 font-medium"><span class="inline-block h-4 w-4 rounded-full border-2 border-purple-600 border-t-transparent animate-spin"></span><span>Analyzing your resume &amp; matching the top 4 templates out of 59...</span></div>`;
+
+      try {
+        const catalogCompact = TEMPLATE_CATALOG.map((t) => `${t.id} (${t.badge}): ${t.name} — ${t.desc}`).join('\n');
+        const prompt = `Pick the TOP 4 best-suited resume templates for this candidate from the 59 available templates below. Consider their industry, seniority, content density, and whether they have a profile photo (${resume.personalInfo?.photoDataUrl ? 'YES' : 'NO'}).
+CATALOG:
+${catalogCompact}
+
+RESUME:
+${getCleanResumeJsonForAi(resume)}
+
+Return STRICT JSON:
+{
+  "recommendations": [
+    { "templateId": "exact-id-from-catalog", "reason": "Short 1-sentence reason why this template fits" }
+  ]
+}`;
+        const res = await callGeminiJson(prompt, 0.2);
+        const recs = (Array.isArray(res?.recommendations) ? res.recommendations : [])
+          .filter((r) => r && ALLOWED_TEMPLATES.includes(r.templateId))
+          .slice(0, 4);
+
+        if (recs.length === 0) {
+          box.innerHTML = `<p class="text-xs text-slate-500">Could not match recommendations right now. Try browsing any category pill below.</p>`;
+          return;
+        }
+        box.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-xs font-bold text-purple-800 dark:text-purple-200 flex items-center gap-1.5">
+              <span>✨ AI Top 4 Template Matches for ${escapeHtml(resume.personalInfo?.headline || resume.title || 'Your Resume')}</span>
+            </p>
+            <button type="button" onclick="document.getElementById('tpl-ai-recommendations').classList.add('hidden')" class="text-[11px] text-slate-400 hover:text-slate-700">Dismiss</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            ${recs
+              .map((rec) => {
+                const meta = getTemplateMeta(rec.templateId);
+                return `
+                  <div class="rounded-xl border border-purple-200 dark:border-purple-800/80 bg-purple-50/50 dark:bg-purple-950/30 p-2.5 flex flex-col justify-between gap-2">
+                    <div>
+                      <p class="text-[11px] font-bold text-slate-900 dark:text-white truncate">${escapeHtml(meta.name)}</p>
+                      <span class="inline-block text-[9.5px] font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-400">${escapeHtml(meta.badge)}</span>
+                      <p class="text-[10.5px] text-slate-600 dark:text-slate-300 mt-1 leading-snug">${escapeHtml(rec.reason || meta.desc)}</p>
+                    </div>
+                    <button type="button" onclick="selectTemplateFromGallery('${meta.id}')" class="w-full rounded-lg bg-purple-600 hover:bg-purple-700 px-2.5 py-1.5 text-[11px] font-semibold text-white transition">Apply Template</button>
+                  </div>`;
+              })
+              .join('')}
+          </div>`;
+      } catch (err) {
+        box.innerHTML = `<p class="text-xs text-red-600">AI Template Match Error: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    // 4. STRUCTURED EDITOR INLINE AI TOOLS (Title, Headline, Summary, Skills, Role, Project, Section Order)
+    async function aiRefineStructuredSection(kind) {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      const labels = { title: 'file title', headline: 'professional headline', summary: 'professional summary', skills: 'skills list' };
+      showStatusBanner('warning', `AI is polishing your ${labels[kind] || kind}...`);
+      try {
+        let prompt = '';
+        if (kind === 'title') {
+          prompt = `Generate a clean, professional resume file title (max 5 words, e.g. "Elena Santillan — Product Designer") from this resume. Return JSON: { "title": "" }.\nRESUME: ${getCleanResumeJsonForAi(resume)}`;
+        } else if (kind === 'headline') {
+          prompt = `Craft a sharp, modern 4–9 word professional headline strictly grounded in this resume's real roles and skills. Return JSON: { "headline": "" }.\nRESUME: ${getCleanResumeJsonForAi(resume)}`;
+        } else if (kind === 'summary') {
+          prompt = `Rewrite the candidate's professional summary in 2–4 crisp, executive sentences strictly grounded in their real resume facts (never invent metrics, employers, or skills). Return JSON: { "summary": "" }.\nRESUME: ${getCleanResumeJsonForAi(resume)}`;
+        } else if (kind === 'skills') {
+          prompt = `Clean, deduplicate, and group the candidate's existing skills into 2–4 clear categories without inventing new skills (each skill must be a short individual string item). Return JSON: { "skills": [{ "category": "", "items": [""] }] }.\nRESUME: ${getCleanResumeJsonForAi(resume)}`;
+        }
+        const res = await callGeminiJson(prompt, 0.2);
+        pushUndoSnapshot(resume);
+        if (kind === 'title' && res?.title) resume.title = String(res.title).trim();
+        else if (kind === 'headline' && res?.headline) resume.personalInfo.headline = String(res.headline).trim();
+        else if (kind === 'summary' && typeof res?.summary === 'string') resume.summary = res.summary.trim();
+        else if (kind === 'skills' && Array.isArray(res?.skills)) resume.skills = normalizeSkills(res.skills);
+        else throw new Error('AI returned an empty suggestion.');
+
+        await persistResume(resume);
+        renderPreviewPanel();
+        renderStructuredEditor();
+        showStatusBanner('success', `AI updated your ${labels[kind] || kind} (press Ctrl+Z to undo).`);
+      } catch (err) {
+        showStatusBanner('error', `AI polish failed: ${err.message}`);
+      }
+    }
+
+    async function aiPolishSingleExperience(idx) {
+      const resume = ensureAiReadyForTool();
+      if (!resume || !resume.experiences?.[idx]) return;
+      const role = resume.experiences[idx];
+      showStatusBanner('warning', `AI is sharpening bullets for Role #${idx + 1}...`);
+      try {
+        const prompt = `Rewrite ONLY the bullet points ("highlights") of this single resume role for stronger action verbs, clarity, and executive conciseness.
+CRITICAL: Never invent employers, dates, tools, or numbers not present in the original role.
+ROLE: ${JSON.stringify(role)}
+Return STRICT JSON: { "highlights": [""] }`;
+        const res = await callGeminiJson(prompt, 0.2);
+        const nextBullets = toStringArray(res?.highlights);
+        if (nextBullets.length === 0) throw new Error('No bullets returned.');
+        pushUndoSnapshot(resume);
+        resume.experiences[idx].highlights = nextBullets;
+        await persistResume(resume);
+        renderPreviewPanel();
+        renderStructuredEditor();
+        showStatusBanner('success', `Polished Role #${idx + 1} bullets with AI (press Ctrl+Z to undo).`);
+      } catch (err) {
+        showStatusBanner('error', `AI role polish failed: ${err.message}`);
+      }
+    }
+
+    async function aiPolishSingleProject(idx) {
+      const resume = ensureAiReadyForTool();
+      if (!resume || !resume.projects?.[idx]) return;
+      const proj = resume.projects[idx];
+      showStatusBanner('warning', `AI is sharpening Project #${idx + 1}...`);
+      try {
+        const prompt = `Tighten and clarify ONLY the highlights of this resume project without inventing any facts or metrics.
+PROJECT: ${JSON.stringify(proj)}
+Return STRICT JSON: { "highlights": [""] }`;
+        const res = await callGeminiJson(prompt, 0.2);
+        const nextHighlights = toStringArray(res?.highlights);
+        if (nextHighlights.length === 0) throw new Error('No highlights returned.');
+        pushUndoSnapshot(resume);
+        resume.projects[idx].highlights = nextHighlights;
+        await persistResume(resume);
+        renderPreviewPanel();
+        renderStructuredEditor();
+        showStatusBanner('success', `Polished Project #${idx + 1} with AI (press Ctrl+Z to undo).`);
+      } catch (err) {
+        showStatusBanner('error', `AI project polish failed: ${err.message}`);
+      }
+    }
+
+    async function aiOptimizeSectionOrder() {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      showStatusBanner('warning', 'AI is optimizing section order for recruiter impact...');
+      try {
+        const prompt = `Determine the highest-impact section order for this candidate's resume (e.g. graduates put education higher; senior professionals lead with summary + experience; technical builders highlight skills/projects).
+Allowed section keys: ${JSON.stringify(DEFAULT_SECTION_ORDER)}.
+RESUME: ${getCleanResumeJsonForAi(resume)}
+Return STRICT JSON: { "sectionOrder": ["summary", ...], "rationale": "1-sentence reason" }`;
+        const res = await callGeminiJson(prompt, 0.15);
+        const valid = (Array.isArray(res?.sectionOrder) ? res.sectionOrder : []).filter((s) => DEFAULT_SECTION_ORDER.includes(s));
+        DEFAULT_SECTION_ORDER.forEach((s) => { if (!valid.includes(s)) valid.push(s); });
+        pushUndoSnapshot(resume);
+        resume.sectionOrder = valid;
+        await persistResume(resume);
+        renderPreviewPanel();
+        renderStructuredEditor();
+        showStatusBanner('success', `AI optimized section order: ${res?.rationale || valid.slice(0, 4).join(' → ')} (Ctrl+Z to undo)`);
+      } catch (err) {
+        showStatusBanner('error', `AI section order failed: ${err.message}`);
+      }
+    }
+
+    // 5. PRE-EXPORT VISUAL & QUALITY AUDIT (Uses Live Rendered Preview Screenshots!)
+    async function runAiPreExportCheck() {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      openModal('preexport-modal');
+      const body = document.getElementById('preexport-results-body');
+      if (!body) return;
+      body.innerHTML = `<div class="flex items-center gap-2.5 text-purple-700 dark:text-purple-300 font-medium py-4"><span class="inline-block h-4 w-4 rounded-full border-2 border-purple-600 border-t-transparent animate-spin"></span><span>Capturing live resume preview &amp; running AI visual + typo audit...</span></div>`;
+
+      try {
+        const telemetryBundle = measureResumeLayoutTelemetry(resume);
+        let imgs = [];
+        if (state.aiPreviewVision !== false) {
+          try { imgs = await captureLivePreviewImagesForAi(resume, telemetryBundle); } catch {}
+        }
+        const prompt = `Perform a fast, sharp pre-export quality check on this resume using BOTH the attached live rendered preview screenshot(s) and the JSON/DOM telemetry below.
+Check for:
+1) Visual layout, page breaks, orphan lines, empty gaps, overlapping moved blocks, or contrast issues.
+2) Missing contact details, typos, tense inconsistency, or weak phrasing.
+TELEMETRY: ${JSON.stringify(telemetryBundle.telemetry)}
+RESUME: ${getCleanResumeJsonForAi(resume)}
+Return STRICT JSON:
+{
+  "readinessScore": 0,
+  "verdict": "Ready to Export" | "Minor Polish Recommended" | "Fix Layout Before Export",
+  "strengths": [""],
+  "issuesToFix": [{ "category": "Visual" | "Copy" | "ATS", "detail": "" }]
+}`;
+        const inlineParts = imgs.slice(0, 3).map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.data } }));
+        let res;
+        try {
+          res = await callGeminiJson(prompt, 0.15, inlineParts);
+        } catch {
+          res = await callGeminiJson(prompt, 0.15, []);
+        }
+        state._lastPreExportAudit = res;
+        const issues = Array.isArray(res?.issuesToFix) ? res.issuesToFix : [];
+        const strengths = Array.isArray(res?.strengths) ? res.strengths : [];
+        body.innerHTML = `
+          <div class="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-950/40 p-4 flex items-center justify-between gap-3">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">${escapeHtml(res?.verdict || 'Audit Complete')}</p>
+              <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Inspected ${imgs.length} live preview page(s) · ${telemetryBundle.telemetry.renderedPageCount} page(s) · ${escapeHtml(telemetryBundle.telemetry.paperDimensions)}</p>
+            </div>
+            <span class="text-2xl font-extrabold text-purple-700 dark:text-purple-300">${escapeHtml(res?.readinessScore ?? '—')}%</span>
+          </div>
+          ${
+            issues.length > 0
+              ? `<div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/30 p-3.5 space-y-1.5">
+                  <p class="font-semibold text-amber-900 dark:text-amber-200">Items to Fix (${issues.length})</p>
+                  <ul class="list-disc pl-4 space-y-1 text-xs text-slate-700 dark:text-slate-300">
+                    ${issues.map((it) => `<li><strong>[${escapeHtml(it.category || 'Check')}]</strong> ${escapeHtml(it.detail || '')}</li>`).join('')}
+                  </ul>
+                </div>`
+              : `<div class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 p-3.5 text-emerald-800 dark:text-emerald-200 font-medium">No layout or copy issues detected — ready to export!</div>`
+          }
+          ${
+            strengths.length > 0
+              ? `<div class="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 space-y-1">
+                  <p class="font-semibold text-slate-900 dark:text-white">What Looks Great</p>
+                  <ul class="list-disc pl-4 space-y-0.5 text-xs text-slate-600 dark:text-slate-300">
+                    ${strengths.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}
+                  </ul>
+                </div>`
+              : ''
+          }`;
+      } catch (err) {
+        body.innerHTML = `<p class="text-red-600">Pre-Export Audit Error: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    function sendPreExportFixesToChat() {
+      const issues = (state._lastPreExportAudit?.issuesToFix || []).map((i) => `[${i.category}] ${i.detail}`).join('; ');
+      toggleSideDrawer(false);
+      triggerQuickPrompt(
+        'pre_export_fix',
+        issues
+          ? `Fix these pre-export audit issues on my resume while preserving all my real facts: ${issues}`
+          : 'Inspect my live resume preview and fix any layout, spacing, or typo issues before I export PDF.'
+      );
+    }
+
+    // 6. ATS MODAL -> ONE-CLICK AI AUTO-TAILOR IN CHAT
+    function aiTailorResumeFromAts() {
+      const rep = state._lastAtsReport;
+      closeModal('ats-modal');
+      toggleSideDrawer(false);
+      const missing = (rep?.data?.missingKeywords || []).slice(0, 12).join(', ');
+      const recs = (rep?.data?.groundedRecommendations || []).map((r) => `${r.section}: ${r.actionableStep}`).join('; ');
+      const prompt = `Tailor my resume using the ATS audit findings below WITHOUT fabricating any experience or skills I don't have. Only surface or clarify phrasing that aligns truthfully with my real background.\nTarget JD: ${rep?.jd || '(General ATS audit)'}\nMissing keywords to consider where truthful: ${missing || 'None'}\nRecommendations: ${recs || 'General ATS alignment'}`;
+      triggerQuickPrompt('ats_tailor', prompt);
+    }
+
+    // 7. COVER LETTER INLINE AI REFINEMENT
+    async function refineCoverLetterWithAi(instruction) {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      const textarea = document.getElementById('cl-output-text');
+      const currentDraft = (textarea?.value || '').trim();
+      if (!currentDraft) return;
+      const prevText = currentDraft;
+      textarea.value = `Refining cover letter with ${state.selectedModelId || 'Gemini'}...`;
+      try {
+        const prompt = `Refine the following cover letter according to this instruction: "${instruction}".
+CRITICAL: Stay 100% grounded in the candidate's real resume facts.
+CURRENT COVER LETTER:
+${prevText}
+RESUME:
+${getCleanResumeJsonForAi(resume)}
+Return STRICT JSON: { "coverLetter": "" }`;
+        const res = await callGeminiJson(prompt, 0.25);
+        textarea.value = res?.coverLetter || prevText;
+      } catch (err) {
+        textarea.value = prevText;
+        showStatusBanner('error', `Cover letter refinement failed: ${err.message}`);
+      }
+    }
+
+    // 8. VERSION HISTORY: ✨ AI DIFF & COMPARISON
+    async function aiCompareVersionSnapshot(idx) {
+      const resume = ensureAiReadyForTool();
+      if (!resume || !resume.versions?.[idx]) return;
+      const box = document.getElementById(`version-ai-diff-${idx}`);
+      if (!box) return;
+      box.classList.remove('hidden');
+      box.innerHTML = `<span class="text-purple-700 dark:text-purple-300 font-medium">Comparing saved snapshot vs. current resume with AI...</span>`;
+      try {
+        const rawSnap = resume.versions[idx].snapshot;
+        const parsedSnap = typeof rawSnap === 'string' ? JSON.parse(rawSnap) : rawSnap;
+        const cleanSnap = { ...parsedSnap, personalInfo: { ...(parsedSnap?.personalInfo || {}), photoDataUrl: '' }, versions: [] };
+        const prompt = `Compare this SAVED SNAPSHOT against the user's CURRENT RESUME. Summarize key differences in content, template/layout, and which version is stronger in 3 concise bullet points.
+SAVED SNAPSHOT: ${JSON.stringify(cleanSnap)}
+CURRENT RESUME: ${getCleanResumeJsonForAi(resume)}
+Return STRICT JSON: { "summary": "", "keyDifferences": [""], "recommendation": "" }`;
+        const res = await callGeminiJson(prompt, 0.2);
+        const diffs = Array.isArray(res?.keyDifferences) ? res.keyDifferences : [];
+        box.innerHTML = `
+          <p class="font-semibold text-purple-900 dark:text-purple-200 mb-1">${escapeHtml(res?.summary || 'Version Comparison')}</p>
+          ${diffs.length ? `<ul class="list-disc pl-4 space-y-0.5 mb-1.5">${diffs.map((d) => `<li>${escapeHtml(d)}</li>`).join('')}</ul>` : ''}
+          ${res?.recommendation ? `<p class="font-medium text-emerald-700 dark:text-emerald-300">Recommendation: ${escapeHtml(res.recommendation)}</p>` : ''}`;
+      } catch (err) {
+        box.innerHTML = `<span class="text-red-600">AI Diff Error: ${escapeHtml(err.message)}</span>`;
+      }
+    }
+
+    // 9. AI INTERVIEW COACH (STAR PREP MODAL)
+    async function generateInterviewPrep() {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      const jd = (document.getElementById('interview-jd-input')?.value || '').trim();
+      const out = document.getElementById('interview-results-area');
+      if (!out) return;
+      out.innerHTML = `<p class="text-purple-700 dark:text-purple-300 font-medium">Generating grounded STAR interview questions &amp; talking points...</p>`;
+      try {
+        const prompt = `Generate 8 tailored interview questions (mix of behavioral, role-specific, and leadership/technical) grounded strictly in this candidate's ACTUAL RESUME and optional TARGET ROLE. For each question, provide a concise STAR talking-point outline referencing ONLY real roles/projects from their resume.
+TARGET ROLE / JD: ${jd || resume.personalInfo?.headline || resume.title || 'General Role'}
+RESUME: ${getCleanResumeJsonForAi(resume)}
+Return STRICT JSON:
+{
+  "questions": [
+    { "category": "Behavioral" | "Technical" | "Leadership" | "Role Fit", "question": "", "starOutline": "" }
+  ]
+}`;
+        const res = await callGeminiJson(prompt, 0.3);
+        const qs = Array.isArray(res?.questions) ? res.questions : [];
+        out.innerHTML = qs
+          .map(
+            (q, i) => `
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 p-3.5 space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Q${i + 1} · ${escapeHtml(q.category || 'Interview')}</span>
+              </div>
+              <p class="font-semibold text-slate-900 dark:text-white">${escapeHtml(q.question || '')}</p>
+              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">${escapeHtml(q.starOutline || '')}</p>
+            </div>`
+          )
+          .join('');
+      } catch (err) {
+        out.innerHTML = `<p class="text-red-600">Interview Prep Error: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    // 10. AI LINKEDIN & BIO SYNC MODAL
+    async function generateLinkedInKit() {
+      const resume = ensureAiReadyForTool();
+      if (!resume) return;
+      const out = document.getElementById('linkedin-results-area');
+      if (!out) return;
+      out.innerHTML = `<p class="text-purple-700 dark:text-purple-300 font-medium">Syncing LinkedIn Headline, About &amp; Featured Highlights from your resume...</p>`;
+      try {
+        const prompt = `Create a copy-ready LinkedIn Profile Kit strictly grounded in the candidate's ACTUAL RESUME (never invent roles, companies, degrees, or numbers):
+1) "headline": punchy 120–200 char LinkedIn headline with keywords
+2) "about": warm, authoritative first-person LinkedIn About section (2–3 short paragraphs)
+3) "featuredHighlights": 4 crisp career highlight bullets ready for LinkedIn Featured/Experience
+RESUME: ${getCleanResumeJsonForAi(resume)}
+Return STRICT JSON: { "headline": "", "about": "", "featuredHighlights": [""] }`;
+        const res = await callGeminiJson(prompt, 0.3);
+        const highlightsTxt = (Array.isArray(res?.featuredHighlights) ? res.featuredHighlights : []).map((h) => `• ${h}`).join('\n');
+        out.innerHTML = `
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold text-slate-800 dark:text-slate-200">LinkedIn Headline</label>
+              <button type="button" onclick="copyTextValue('li-headline-out', 'LinkedIn headline')" class="text-[11px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">Copy</button>
+            </div>
+            <input id="li-headline-out" type="text" value="${escapeHtml(res?.headline || '')}" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs" />
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold text-slate-800 dark:text-slate-200">LinkedIn About Section</label>
+              <button type="button" onclick="copyTextValue('li-about-out', 'LinkedIn About')" class="text-[11px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">Copy</button>
+            </div>
+            <textarea id="li-about-out" rows="6" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 text-xs leading-relaxed">${escapeHtml(res?.about || '')}</textarea>
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold text-slate-800 dark:text-slate-200">Featured Career Highlights</label>
+              <button type="button" onclick="copyTextValue('li-highlights-out', 'Highlights')" class="text-[11px] font-semibold text-purple-700 dark:text-purple-400 hover:underline">Copy</button>
+            </div>
+            <textarea id="li-highlights-out" rows="4" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 text-xs leading-relaxed">${escapeHtml(highlightsTxt)}</textarea>
+          </div>`;
+      } catch (err) {
+        out.innerHTML = `<p class="text-red-600">LinkedIn Sync Error: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    async function copyTextValue(elId, label = 'Text') {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(el.value || '');
+          showStatusBanner('success', `${label} copied to clipboard.`);
+          return;
+        }
+        el.select();
+        showStatusBanner('warning', `${label} selected. Press Ctrl+C / Cmd+C to copy.`);
+      } catch {
+        el.select();
       }
     }
 
