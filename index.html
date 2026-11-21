@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RESUMATE AI v34 — Cross-Page Drag &amp; AI Spatial Layout Control</title>
+  <title>RESUMATE AI v36 — Edge-Aware Exact Binary-Search 1-Page Fit</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -623,6 +623,7 @@
       #interview-modal,
       #linkedin-modal,
       #preexport-modal,
+      #vision-lightbox-modal,
       #pdf-export-overlay {
         display: none !important;
       }
@@ -924,6 +925,7 @@
                 <label class="text-[11px] font-medium text-slate-600 dark:text-slate-300">Header align<select id="design-header-align" class="design-control mt-1" onchange="updateDesignSetting('headerAlign',this.value)"><option value="left">Left</option><option value="center">Centered</option></select></label>
                 <label class="text-[11px] font-medium text-slate-600 dark:text-slate-300">Resume icons<select id="design-icon-style" class="design-control mt-1" onchange="updateDesignSetting('iconStyle',this.value)"><option value="all">Contact &amp; Section Icons</option><option value="contact">Contact Icons Only</option><option value="none">No Icons (Text Only)</option></select></label>
                 <label class="text-[11px] font-medium text-slate-600 dark:text-slate-300 col-span-2">Sidebar width <span id="design-sidebar-label">248</span>px<input id="design-sidebar-width" class="w-full mt-1.5" type="range" min="180" max="340" step="4" value="248" oninput="updateDesignSetting('sidebarWidth',Number(this.value),false)"></label>
+                <label class="text-[11px] font-medium text-slate-600 dark:text-slate-300 col-span-2">Page fit scale <span id="design-content-scale-label">100</span>%<input id="design-content-scale" class="w-full mt-1.5" type="range" min="0.68" max="1.00" step="0.01" value="1.00" oninput="updateDesignSetting('contentScale',Number(this.value),false)"></label>
               </div>
             </div>
 
@@ -1125,7 +1127,7 @@
         <div class="flex items-center gap-2 min-w-0 shrink-0">
           <div class="h-8 w-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-bold shadow-sm shrink-0">R</div>
           <span class="hidden sm:inline font-semibold tracking-tight text-slate-950 dark:text-white truncate">RESUMATE AI</span>
-          <span class="rounded-md bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 shrink-0">v34</span>
+          <span class="rounded-md bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 shrink-0">v36</span>
         </div>
       </header>
 
@@ -1462,6 +1464,21 @@
     </div>
   </div>
 
+  <!-- 9. AI Preview Screenshot Lightbox Modal -->
+  <div id="vision-lightbox-modal" onclick="if(event.target===this) closeModal('vision-lightbox-modal')" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
+    <div class="max-w-3xl max-h-[92dvh] flex flex-col rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-5 py-3">
+        <span id="vision-lightbox-title" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">Live Preview Sent to AI</span>
+        <button type="button" onclick="closeModal('vision-lightbox-modal')" class="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+      </div>
+      <div class="overflow-auto p-4 bg-slate-100 dark:bg-slate-950 flex justify-center">
+        <img id="vision-lightbox-img" src="" alt="Live Resume Preview Sent to AI" class="max-h-[78dvh] w-auto rounded-lg shadow-lg border border-slate-300 dark:border-slate-700" />
+      </div>
+    </div>
+  </div>
+
   <script>
     // =========================================================================
     // 1. GLOBAL APPLICATION STATE & EXACT PHYSICAL PAPER DEFINITIONS (96 CSS DPI)
@@ -1562,6 +1579,7 @@
       moveSectionsMode: false,
       selectedMoveId: null,
       aiPreviewVision: true,
+      sessionPreviewThumbs: {},
       zoom: 100,
       rememberOnDevice: initialRememberDevice,
       darkMode: false,
@@ -1712,7 +1730,7 @@
             if (state.sideDrawerOpen && !state.sideDrawerPinned) {
               toggleSideDrawer(false);
             }
-            ['config-modal', 'import-review-modal', 'ats-modal', 'cover-letter-modal', 'versions-modal', 'interview-modal', 'linkedin-modal', 'preexport-modal'].forEach(closeModal);
+            ['config-modal', 'import-review-modal', 'ats-modal', 'cover-letter-modal', 'versions-modal', 'interview-modal', 'linkedin-modal', 'preexport-modal', 'vision-lightbox-modal'].forEach(closeModal);
             if (state.moveSectionsMode) toggleMoveSectionsMode(false);
             else if (state.selectedMoveId) clearSelectedMovableSection();
           }
@@ -1984,6 +2002,7 @@
       bulletStyle: 'disc',
       iconStyle: 'all',
       sidebarWidth: 248,
+      contentScale: 1.0,
     };
 
     const DEFAULT_PHOTO_SIZE_IN = 2.0;
@@ -2003,6 +2022,7 @@
       marginLeft: [0.2, 1.5],
       marginRight: [0.2, 1.5],
       sidebarWidth: [180, 340],
+      contentScale: [0.68, 1.0],
     };
 
     const TEMPLATE_DESIGN_PRESETS = {
@@ -2789,6 +2809,7 @@
         'design-bullet-style': d.bulletStyle,
         'design-icon-style': d.iconStyle || 'all',
         'design-sidebar-width': d.sidebarWidth,
+        'design-content-scale': Number(d.contentScale || 1).toFixed(2),
       };
       Object.entries(values).forEach(([id, v]) => {
         const el = document.getElementById(id);
@@ -2806,6 +2827,7 @@
         ['design-item-gap-label', d.itemGap],
         ['design-photo-label', `${(Number(d.photoSize || DEFAULT_PHOTO_SIZE_PX) / CSS_DPI).toFixed(2)}" × ${(Number(d.photoSize || DEFAULT_PHOTO_SIZE_PX) / CSS_DPI).toFixed(2)}" (${Math.round(Number(d.photoSize || DEFAULT_PHOTO_SIZE_PX))}px)`],
         ['design-sidebar-label', d.sidebarWidth],
+        ['design-content-scale-label', Math.round(Number(d.contentScale || 1) * 100)],
       ].forEach(([id, v]) => {
         const el = document.getElementById(id);
         if (el) el.textContent = String(v);
@@ -2819,24 +2841,50 @@
       }
     }
 
-    function measureResumeLayoutTelemetry(resume) {
+    const SHEET_SAFE_EDGE_PX = 12; // Hard minimum safe padding from all 4 physical paper cut edges
+
+    function getEffectiveScaledPaper(paper, design) {
+      const sc = Math.min(1, Math.max(0.68, Number(design?.contentScale) || 1));
+      if (sc >= 0.999) return { effPaper: paper, contentScale: 1 };
+      return {
+        effPaper: {
+          ...paper,
+          widthPx: Math.round(paper.widthPx / sc),
+          heightPx: Math.round(paper.heightPx / sc),
+        },
+        contentScale: sc,
+      };
+    }
+
+    // Measures REAL layout telemetry across ALL 4 paper edges (Left, Right, Top, Bottom)
+    // matching what the user ACTUALLY sees in Live Preview + Clean PDF Export!
+    function measureResumeLayoutTelemetry(resume, options = {}) {
       const paper = PAPER_SIZES[resume?.paperSize] || PAPER_SIZES.letter;
       const d = { ...DEFAULT_DESIGN_SETTINGS, ...(resume?.designSettings || {}) };
       const marginIn = typeof resume?.marginIn === 'number' ? resume.marginIn : d.marginLeft;
-      const pagesHtml = buildPaginatedPagesHtml(resume, paper, marginIn, false);
+      const viewEditable = options.editable !== undefined ? Boolean(options.editable) : !state.printPreviewMode;
+
+      const pagesHtml = buildPaginatedPagesHtml(resume, paper, marginIn, viewEditable);
+      const cleanPagesHtml = viewEditable ? buildPaginatedPagesHtml(resume, paper, marginIn, false) : pagesHtml;
       const pageCount = pagesHtml.length;
+      const cleanPageCount = cleanPagesHtml.length;
       const tpl = ALLOWED_TEMPLATES.includes(resume?.templateId) ? resume.templateId : 'modern-minimal';
       const savedMap = resume?.sectionPositions?.[tpl] || {};
+      const { effPaper, contentScale } = getEffectiveScaledPaper(paper, d);
 
       let lastPageFillPct = 0;
       let lastPageContentPx = 0;
+      let page1FillPercent = 0;
+      let page1BottomClippedPx = 0;
+      let totalEdgeOverflowPx = 0;
+      const edgeViolations = [];
       const sectionsLayout = [];
       const page1OpenPockets = [];
 
       try {
         const probe = document.createElement('div');
         probe.className = 'exporting-pdf';
-        probe.style.cssText = `position:fixed;left:-99999px;top:0;width:${paper.widthPx}px;visibility:hidden;pointer-events:none;`;
+        probe.style.cssText = `position:fixed;left:0;top:0;width:${paper.widthPx}px;opacity:0;visibility:hidden;pointer-events:none;z-index:-2;`;
         document.body.appendChild(probe);
 
         for (let pIdx = 0; pIdx < pageCount; pIdx += 1) {
@@ -2844,88 +2892,141 @@
           const sheet = probe.querySelector('.physical-paper-sheet');
           if (!sheet) continue;
           const sheetRect = sheet.getBoundingClientRect();
+          const coordScale = Math.max(0.2, sheetRect.width / effPaper.widthPx);
 
-          // Measure every movable section's exact visual bounding box on this sheet
           sheet.querySelectorAll('.movable-section-box[data-move-id]').forEach((box) => {
             const r = box.getBoundingClientRect();
             if (r.width < 2 || r.height < 2) return;
             const moveId = box.getAttribute('data-move-id');
+            const bx = Math.round((r.left - sheetRect.left) / coordScale);
+            const by = Math.round((r.top - sheetRect.top) / coordScale);
+            const bw = Math.round(r.width / coordScale);
+            const bh = Math.round(r.height / coordScale);
+            const bRight = Math.round((r.right - sheetRect.left) / coordScale);
+            const bBot = Math.round((r.bottom - sheetRect.top) / coordScale);
+
+            const ovLeft = Math.max(0, -bx);
+            const ovTop = Math.max(0, -by);
+            const ovRight = Math.max(0, bRight - effPaper.widthPx);
+            const ovBottom = Math.max(0, bBot - effPaper.heightPx);
+            const ovMax = Math.max(ovLeft, ovTop, ovRight, ovBottom);
+
+            if (ovMax > 2) {
+              totalEdgeOverflowPx += ovMax;
+              edgeViolations.push({
+                moveId,
+                label: box.getAttribute('data-move-label') || 'Section',
+                pageNumber: pIdx + 1,
+                overflowLeftPx: ovLeft,
+                overflowRightPx: ovRight,
+                overflowTopPx: ovTop,
+                overflowBottomPx: ovBottom,
+              });
+            }
+
             sectionsLayout.push({
               moveId,
               label: box.getAttribute('data-move-label') || 'Section',
               pageIndex: pIdx,
               pageNumber: pIdx + 1,
-              x: Math.round(r.left - sheetRect.left),
-              y: Math.round(r.top - sheetRect.top),
-              width: Math.round(r.width),
-              height: Math.round(r.height),
-              bottom: Math.round(r.bottom - sheetRect.top),
+              x: bx,
+              y: by,
+              width: bw,
+              height: bh,
+              right: bRight,
+              bottom: bBot,
               isMoved: box.getAttribute('data-is-moved') === '1',
+              overflowsEdge: ovMax > 2,
             });
           });
 
+          // Measure TRUE unclamped bounds across all visible content nodes (detects clipped sidebars or overflowing text!)
+          let sheetMaxBot = 0;
+          let sheetMaxRight = 0;
+          sheet.querySelectorAll('h1,h2,h3,p,li,header,section,.movable-section-box').forEach((el) => {
+            if (el.classList.contains('wysiwyg-only') || el.classList.contains('paper-margin-guide')) return;
+            const r = el.getBoundingClientRect();
+            if (r.height > 1 && r.width > 1) {
+              sheetMaxBot = Math.max(sheetMaxBot, (r.bottom - sheetRect.top) / coordScale);
+              sheetMaxRight = Math.max(sheetMaxRight, (r.right - sheetRect.left) / coordScale);
+            }
+          });
+          if (pIdx === 0) {
+            page1BottomClippedPx = Math.max(0, Math.round(sheetMaxBot - effPaper.heightPx));
+            page1FillPercent = Math.round((Math.min(effPaper.heightPx, Math.max(0, sheetMaxBot)) / effPaper.heightPx) * 100);
+            const rightClip = Math.max(0, Math.round(sheetMaxRight - effPaper.widthPx));
+            if (page1BottomClippedPx > 2) totalEdgeOverflowPx = Math.max(totalEdgeOverflowPx, page1BottomClippedPx);
+            if (rightClip > 2) totalEdgeOverflowPx = Math.max(totalEdgeOverflowPx, rightClip);
+          }
           if (pIdx === pageCount - 1) {
-            let maxBottom = 0;
-            sheet.querySelectorAll('h1,h2,h3,p,li,header,section,.movable-section-box').forEach((el) => {
-              if (el.classList.contains('wysiwyg-only') || el.classList.contains('paper-margin-guide')) return;
-              const r = el.getBoundingClientRect();
-              if (r.height > 1 && r.width > 1) {
-                maxBottom = Math.max(maxBottom, r.bottom - sheetRect.top);
-              }
-            });
-            lastPageContentPx = Math.round(Math.min(paper.heightPx, Math.max(0, maxBottom)));
-            lastPageFillPct = Math.round((lastPageContentPx / paper.heightPx) * 100);
+            lastPageContentPx = Math.round(Math.max(0, sheetMaxBot));
+            lastPageFillPct = Math.round((Math.min(effPaper.heightPx, lastPageContentPx) / effPaper.heightPx) * 100);
           }
         }
 
         document.body.removeChild(probe);
 
-        // Compute open bottom whitespace pockets on Page 1 (Left Half, Right Half, Full Width)
-        const mL = Math.round((d.marginLeft ?? 0.5) * CSS_DPI);
-        const mR = Math.round((d.marginRight ?? 0.5) * CSS_DPI);
-        const mB = Math.round((d.marginBottom ?? 0.45) * CSS_DPI);
-        const usableBottom = paper.heightPx - mB;
+        // Compute open bottom whitespace pockets on Page 1 strictly inside safe paper edges
+        const mL = Math.max(SHEET_SAFE_EDGE_PX, Math.round((d.marginLeft ?? 0.45) * CSS_DPI));
+        const mR = Math.max(SHEET_SAFE_EDGE_PX, Math.round((d.marginRight ?? 0.45) * CSS_DPI));
+        const mB = Math.max(SHEET_SAFE_EDGE_PX, Math.round((d.marginBottom ?? 0.38) * CSS_DPI));
+        const usableRight = effPaper.widthPx - mR;
+        const usableBottom = effPaper.heightPx - mB;
         const p0Boxes = sectionsLayout.filter((s) => s.pageIndex === 0);
-        const midX = Math.round(paper.widthPx * 0.44);
+        const midX = Math.round(effPaper.widthPx * 0.44);
 
-        const leftBoxes = p0Boxes.filter((b) => b.x < midX && b.width < paper.widthPx * 0.65);
-        const rightBoxes = p0Boxes.filter((b) => b.x + b.width > midX + 30 && b.width < paper.widthPx * 0.72);
-        const headerBottom = p0Boxes.filter((b) => b.width >= paper.widthPx * 0.65).reduce((m, b) => Math.max(m, b.bottom), Math.round((d.marginTop ?? 0.45) * CSS_DPI));
+        const leftBoxes = p0Boxes.filter((b) => b.x < midX && b.width < effPaper.widthPx * 0.65);
+        const rightBoxes = p0Boxes.filter((b) => b.x + b.width > midX + 30 && b.width < effPaper.widthPx * 0.72);
+        const headerBottom = p0Boxes
+          .filter((b) => b.width >= effPaper.widthPx * 0.65)
+          .reduce((m, b) => Math.max(m, b.bottom), Math.round((d.marginTop ?? 0.42) * CSS_DPI));
 
         if (leftBoxes.length > 0) {
-          const lb = Math.max(headerBottom, ...leftBoxes.map((b) => b.bottom)) + 12;
-          const lx = Math.min(...leftBoxes.map((b) => b.x));
-          const lw = Math.max(...leftBoxes.map((b) => b.width));
-          if (usableBottom - lb >= 72 && lw >= 160) {
-            page1OpenPockets.push({ zone: 'page1-left-bottom', x: Math.max(mL, lx), y: lb, width: lw, availableHeight: usableBottom - lb });
+          const lb = Math.max(headerBottom, ...leftBoxes.map((b) => b.bottom)) + 10;
+          const lx = Math.max(mL, Math.min(...leftBoxes.map((b) => b.x)));
+          const lw = Math.min(usableRight - lx, Math.max(...leftBoxes.map((b) => b.width)));
+          if (usableBottom - lb >= 60 && lw >= 150) {
+            page1OpenPockets.push({ zone: 'page1-left-bottom', x: lx, y: lb, width: lw, availableHeight: usableBottom - lb });
           }
         }
         if (rightBoxes.length > 0) {
-          const rb = Math.max(headerBottom, ...rightBoxes.map((b) => b.bottom)) + 12;
-          const rx = Math.min(...rightBoxes.map((b) => b.x));
-          const rw = Math.min(paper.widthPx - mR - rx, Math.max(...rightBoxes.map((b) => b.width)));
-          if (usableBottom - rb >= 72 && rw >= 160) {
+          const rb = Math.max(headerBottom, ...rightBoxes.map((b) => b.bottom)) + 10;
+          const rx = Math.max(mL, Math.min(...rightBoxes.map((b) => b.x)));
+          const rw = Math.min(usableRight - rx, Math.max(...rightBoxes.map((b) => b.width)));
+          if (usableBottom - rb >= 60 && rw >= 150) {
             page1OpenPockets.push({ zone: 'page1-right-bottom', x: rx, y: rb, width: rw, availableHeight: usableBottom - rb });
           }
         }
-        const allBottom = p0Boxes.reduce((m, b) => Math.max(m, b.bottom), headerBottom) + 12;
-        if (usableBottom - allBottom >= 72) {
-          page1OpenPockets.push({ zone: 'page1-full-bottom', x: mL, y: allBottom, width: paper.widthPx - mL - mR, availableHeight: usableBottom - allBottom });
+        const allBottom = p0Boxes.reduce((m, b) => Math.max(m, b.bottom), headerBottom) + 10;
+        if (usableBottom - allBottom >= 60) {
+          page1OpenPockets.push({ zone: 'page1-full-bottom', x: mL, y: allBottom, width: usableRight - mL, availableHeight: usableBottom - allBottom });
         }
       } catch {}
 
       const movedCount = Object.keys(savedMap).length;
+      const trulyFitsOnePage = pageCount <= 1 && cleanPageCount <= 1 && page1BottomClippedPx <= 2 && totalEdgeOverflowPx <= 2;
 
       return {
         paper,
+        effPaper,
+        contentScale,
         pagesHtml,
+        cleanPagesHtml,
         sectionsLayout,
         page1OpenPockets,
         telemetry: {
           renderedPageCount: pageCount,
-          overflowsOnePage: pageCount > 1,
+          cleanExportPageCount: cleanPageCount,
+          overflowsOnePage: !trulyFitsOnePage,
+          trulyFitsOnePage,
+          page1FillPercent,
+          page1BottomClippedPx,
+          totalEdgeOverflowPx,
+          edgeViolations,
           paperSize: paper.id,
           paperDimensions: `${paper.widthIn}" × ${paper.heightIn}" (${paper.widthPx}×${paper.heightPx}px)`,
+          effectiveCoordSpace: `${effPaper.widthPx}×${effPaper.heightPx}px (contentScale ${Math.round(contentScale * 100)}%)`,
+          safePaperBounds: { minX: SHEET_SAFE_EDGE_PX, minY: SHEET_SAFE_EDGE_PX, maxX: effPaper.widthPx - SHEET_SAFE_EDGE_PX, maxY: effPaper.heightPx - SHEET_SAFE_EDGE_PX },
           lastPageOccupiedPx: lastPageContentPx,
           lastPageFillPercent: lastPageFillPct,
           movedSectionCount: movedCount,
@@ -2942,6 +3043,7 @@
             marginBottom: d.marginBottom,
             marginLeft: d.marginLeft,
             marginRight: d.marginRight,
+            contentScale,
             showPhoto: d.showPhoto,
             photoSize: d.photoSize,
           },
@@ -2949,171 +3051,425 @@
       };
     }
 
+    // Universal Edge-Awareness Guard: measures every moved section in real DOM coordinates
+    // and pulls any block that crosses Left, Right, Top, or Bottom paper edges strictly back inside!
+    function clampAllMovedSectionsInsidePaper(resume) {
+      const tpl = ALLOWED_TEMPLATES.includes(resume?.templateId) ? resume.templateId : 'modern-minimal';
+      const map = resume?.sectionPositions?.[tpl];
+      if (!map || Object.keys(map).length === 0) return 0;
+
+      let fixedCount = 0;
+      const snap = measureResumeLayoutTelemetry(resume, { editable: !state.printPreviewMode });
+      const { effPaper, sectionsLayout } = snap;
+      const pad = SHEET_SAFE_EDGE_PX;
+      const maxUsableW = Math.max(140, effPaper.widthPx - pad * 2);
+
+      sectionsLayout.forEach((sec) => {
+        const saved = map[sec.moveId];
+        if (!saved) return;
+        let changed = false;
+        const next = { ...saved };
+
+        // Clamp width first if section is wider than the physical paper
+        const curW = Number.isFinite(Number(next.w)) ? Number(next.w) : sec.width;
+        if (curW > maxUsableW) {
+          next.w = Math.round(maxUsableW);
+          changed = true;
+        }
+        const effW = Math.min(curW, maxUsableW);
+
+        // Compute exact edge deltas from measured bounding box
+        let deltaX = 0;
+        let deltaY = 0;
+        if (sec.x < pad) deltaX = pad - sec.x;
+        else if (sec.x + effW > effPaper.widthPx - pad) deltaX = (effPaper.widthPx - pad) - (sec.x + effW);
+
+        if (sec.y < pad) deltaY = pad - sec.y;
+        else if (sec.bottom > effPaper.heightPx - pad) deltaY = (effPaper.heightPx - pad) - sec.bottom;
+
+        // If box is taller than full paper height, keep its top pinned cleanly at top safe pad
+        if (sec.height > effPaper.heightPx - pad * 2) {
+          deltaY = pad - sec.y;
+        }
+
+        if (Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1) {
+          if (Number.isFinite(Number(next.absX)) && Number.isFinite(Number(next.absY))) {
+            next.absX = Math.round(Math.max(pad, Math.min(effPaper.widthPx - pad - effW, Number(next.absX) + deltaX)));
+            next.absY = Math.round(Math.max(pad, Math.min(Math.max(pad, effPaper.heightPx - pad - sec.height), Number(next.absY) + deltaY)));
+          } else {
+            next.x = Math.round((Number(next.x) || 0) + deltaX);
+            next.y = Math.round((Number(next.y) || 0) + deltaY);
+          }
+          changed = true;
+        }
+
+        if (changed) {
+          map[sec.moveId] = next;
+          fixedCount += 1;
+        }
+      });
+
+      return fixedCount;
+    }
+
     // Spatial Cross-Page Packer: attempts to move remaining Page 2+ overflow sections into
-    // real open whitespace pockets on Page 1 (zero overlap) and verifies pageCount drops to 1!
+    // real open whitespace pockets on Page 1 (strictly inside paper edges, zero overlap!)
     function tryPackOverflowSectionsIntoPage1(candResume) {
       const tpl = ALLOWED_TEMPLATES.includes(candResume.templateId) ? candResume.templateId : 'modern-minimal';
-      const snap = measureResumeLayoutTelemetry(candResume);
-      if (snap.telemetry.renderedPageCount <= 1) return { packed: true, movedLabels: [] };
+      const snap = measureResumeLayoutTelemetry(candResume, { editable: !state.printPreviewMode });
+      if (snap.telemetry.trulyFitsOnePage) return { packed: true, movedLabels: [] };
 
       const overflowSecs = snap.sectionsLayout.filter((s) => s.pageIndex > 0);
-      if (overflowSecs.length === 0 || overflowSecs.length > 3) return { packed: false, movedLabels: [] };
+      if (overflowSecs.length === 0 || overflowSecs.length > 5) return { packed: false, movedLabels: [] };
       const pockets = (snap.page1OpenPockets || []).slice().sort((a, b) => b.availableHeight - a.availableHeight);
       if (pockets.length === 0) return { packed: false, movedLabels: [] };
 
       const trialPos = JSON.parse(JSON.stringify(candResume.sectionPositions || {}));
       trialPos[tpl] = { ...(trialPos[tpl] || {}) };
       const movedLabels = [];
+      const pad = SHEET_SAFE_EDGE_PX;
+      const effW = snap.effPaper.widthPx;
+      const effH = snap.effPaper.heightPx;
 
-      // Greedily place each Page 2+ section into the best-fitting Page 1 open pocket
       const pocketCursors = pockets.map((p) => ({ ...p, curY: p.y, remH: p.availableHeight }));
       for (let i = 0; i < overflowSecs.length; i += 1) {
         const sec = overflowSecs[i];
-        // Estimate height when adapted to pocket width
         const chosen = pocketCursors.find((pk) => {
-          const widthRatio = Math.max(0.75, sec.width / Math.max(150, pk.width));
-          const estH = Math.ceil(sec.height * Math.min(1.45, widthRatio));
+          const widthRatio = Math.max(0.72, sec.width / Math.max(150, pk.width));
+          const estH = Math.ceil(sec.height * Math.min(1.5, widthRatio));
           return estH + 8 <= pk.remH;
         });
         if (!chosen) return { packed: false, movedLabels: [] };
 
-        const widthRatio = Math.max(0.75, sec.width / Math.max(150, chosen.width));
-        const estH = Math.ceil(sec.height * Math.min(1.45, widthRatio));
+        const widthRatio = Math.max(0.72, sec.width / Math.max(150, chosen.width));
+        const estH = Math.ceil(sec.height * Math.min(1.5, widthRatio));
+        const safeW = Math.round(Math.min(chosen.width, effW - pad * 2));
+        const safeX = Math.round(Math.max(pad, Math.min(effW - pad - safeW, chosen.x)));
+        const safeY = Math.round(Math.max(pad, Math.min(effH - pad - estH, chosen.curY)));
         trialPos[tpl][sec.moveId] = {
           targetPage: 0,
-          absX: Math.round(chosen.x),
-          absY: Math.round(chosen.curY),
-          w: Math.round(chosen.width),
+          absX: safeX,
+          absY: safeY,
+          w: safeW,
           z: 28 + i,
         };
-        chosen.curY += estH + 10;
-        chosen.remH -= estH + 10;
+        chosen.curY = safeY + estH + 10;
+        chosen.remH = Math.max(0, effH - pad - chosen.curY);
         movedLabels.push(sec.label);
       }
 
       const verifyCand = { ...candResume, sectionPositions: trialPos };
-      const verifySnap = measureResumeLayoutTelemetry(verifyCand);
-      if (verifySnap.telemetry.renderedPageCount <= 1) {
-        // Also ensure no placed block overflows past the bottom margin of Page 1
-        const paper = verifySnap.paper;
-        const maxBottom = verifySnap.sectionsLayout
-          .filter((s) => s.pageIndex === 0)
-          .reduce((m, s) => Math.max(m, s.bottom), 0);
-        if (maxBottom <= paper.heightPx - 14) {
-          candResume.sectionPositions = trialPos;
-          return { packed: true, movedLabels };
-        }
+      clampAllMovedSectionsInsidePaper(verifyCand);
+      const verifySnap = measureResumeLayoutTelemetry(verifyCand, { editable: !state.printPreviewMode });
+      if (verifySnap.telemetry.trulyFitsOnePage) {
+        candResume.sectionPositions = verifyCand.sectionPositions;
+        return { packed: true, movedLabels };
       }
       return { packed: false, movedLabels: [] };
     }
 
-    // Precision Iterative 1-Page Auto-Fit Solver (Typography Ladder + Smart Cross-Page Spatial Packing!):
-    // Measures real paginated DOM output step-by-step and stops at the EXACT lightest adjustment
-    // that fits the entire resume cleanly onto 1 page across all 59 templates!
+    // EXACT PRECISION BINARY-SEARCH 1-PAGE AUTO-FIT SOLVER:
+    // Finds the LARGEST legible layout that fills the page cleanly (~92–98% fill) with
+    // ZERO multi-page spill AND ZERO edge overflow — NEVER making everything tiny or loose!
     function autoFitResumeToOnePage(resume) {
-      const paper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
-      const baseDesign = { ...DEFAULT_DESIGN_SETTINGS, ...(resume.designSettings || {}) };
-      const getCount = (cand) => {
-        const mIn = typeof cand.marginIn === 'number' ? cand.marginIn : (cand.designSettings?.marginLeft ?? 0.5);
-        return buildPaginatedPagesHtml(cand, paper, mIn, false).length;
-      };
+      const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
+      const tplPreset = { ...DEFAULT_DESIGN_SETTINGS, ...(TEMPLATE_DESIGN_PRESETS[tpl] || {}) };
+      const curDesign = { ...DEFAULT_DESIGN_SETTINGS, ...(resume.designSettings || {}) };
 
-      const startPages = getCount(resume);
-      if (startPages <= 1) {
-        return { fitted: true, alreadyOnePage: true, startPages, endPages: startPages, appliedChanges: [] };
+      // Build natural readable baseline (restores from prior over-shrinking so page never stays tiny/loose!)
+      const naturalDesign = {
+        ...curDesign,
+        fontSize: Math.max(Number(curDesign.fontSize) || tplPreset.fontSize, tplPreset.fontSize),
+        nameSize: Math.max(Number(curDesign.nameSize) || tplPreset.nameSize, tplPreset.nameSize),
+        headingSize: Math.max(Number(curDesign.headingSize) || tplPreset.headingSize, tplPreset.headingSize),
+        lineHeight: Math.max(Number(curDesign.lineHeight) || tplPreset.lineHeight, tplPreset.lineHeight),
+        sectionGap: Math.max(Number(curDesign.sectionGap) || tplPreset.sectionGap, tplPreset.sectionGap),
+        itemGap: Math.max(Number(curDesign.itemGap) || tplPreset.itemGap, tplPreset.itemGap),
+        marginTop: Math.max(Number(curDesign.marginTop) || tplPreset.marginTop, tplPreset.marginTop),
+        marginBottom: Math.max(Number(curDesign.marginBottom) || tplPreset.marginBottom, tplPreset.marginBottom),
+        marginLeft: Math.max(Number(curDesign.marginLeft) || tplPreset.marginLeft, tplPreset.marginLeft),
+        marginRight: Math.max(Number(curDesign.marginRight) || tplPreset.marginRight, tplPreset.marginRight),
+        contentScale: 1.0,
+      };
+      if (curDesign.showPhoto !== false) {
+        naturalDesign.photoSize = Math.max(Number(curDesign.photoSize) || tplPreset.photoSize || DEFAULT_PHOTO_SIZE_PX, Math.min(180, tplPreset.photoSize || DEFAULT_PHOTO_SIZE_PX));
       }
 
-      const capMin = (cur, target) => Math.min(Number(cur), target);
-      const startPhoto = Number(baseDesign.photoSize) || DEFAULT_PHOTO_SIZE_PX;
+      const evalCand = (designObj, posObj = resume.sectionPositions) => {
+        const cand = {
+          ...resume,
+          designSettings: designObj,
+          marginIn: designObj.marginLeft,
+          sectionPositions: JSON.parse(JSON.stringify(posObj || {})),
+        };
+        clampAllMovedSectionsInsidePaper(cand);
+        const m = measureResumeLayoutTelemetry(cand, { editable: !state.printPreviewMode });
+        return {
+          cand,
+          fits: m.telemetry.trulyFitsOnePage,
+          pages: Math.max(m.telemetry.renderedPageCount, m.telemetry.cleanExportPageCount),
+          fillPct: m.telemetry.page1FillPercent,
+          edgeOv: m.telemetry.totalEdgeOverflowPx,
+          telemetry: m.telemetry,
+        };
+      };
 
-      // Try spatial packing first at current font size if Page 1 already has a clean open pocket!
-      const directPackCand = { ...resume, sectionPositions: JSON.parse(JSON.stringify(resume.sectionPositions || {})) };
-      const directPack = tryPackOverflowSectionsIntoPage1(directPackCand);
-      if (directPack.packed) {
-        resume.sectionPositions = directPackCand.sectionPositions;
+      const startEval = evalCand(curDesign);
+      const isCurrentlyTooLoose = startEval.fits && (Number(curDesign.contentScale || 1) < 0.97 || startEval.fillPct < 80);
+
+      // If already cleanly 1-page AND well-filled (not over-shrunk/loose), just enforce edge bounds and stop!
+      if (startEval.fits && !isCurrentlyTooLoose) {
+        const fixedEdges = clampAllMovedSectionsInsidePaper(resume);
+        return {
+          fitted: true,
+          alreadyOnePage: true,
+          startPages: startEval.pages,
+          endPages: 1,
+          fillPct: startEval.fillPct,
+          appliedChanges: fixedEdges > 0 ? [`Clamped ${fixedEdges} section(s) strictly inside paper edges ✓`] : [],
+        };
+      }
+
+      const round2 = (v) => Math.round(v * 100) / 100;
+      const round1 = (v) => Math.round(v * 10) / 10;
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      // STAGE 1: Test 100% natural template baseline (fixes previously over-shrunk loose pages!)
+      const natEval = evalCand(naturalDesign);
+      if (natEval.fits) {
+        resume.designSettings = natEval.cand.designSettings;
+        resume.marginIn = natEval.cand.marginIn;
+        resume.sectionPositions = natEval.cand.sectionPositions;
         return {
           fitted: true,
           alreadyOnePage: false,
-          startPages,
+          startPages: startEval.pages,
           endPages: 1,
-          appliedChanges: [`Spatial Auto-Fit: moved ${directPack.movedLabels.join(', ')} onto Page 1 open space → 1 page ✓`],
+          fillPct: natEval.fillPct,
+          appliedChanges: [`Exact Fit: restored full 100% natural scale (${naturalDesign.fontSize}px, ${natEval.fillPct}% page fill) ✓`],
         };
       }
 
-      const steps = [
-        { marginTop: 0.44, marginBottom: 0.44, marginLeft: 0.48, marginRight: 0.48, sectionGap: 9, itemGap: 6 },
-        { marginTop: 0.40, marginBottom: 0.40, marginLeft: 0.45, marginRight: 0.45, sectionGap: 8, itemGap: 5, lineHeight: 1.38 },
-        { marginTop: 0.38, marginBottom: 0.38, marginLeft: 0.42, marginRight: 0.42, sectionGap: 7, itemGap: 4, lineHeight: 1.34, fontSize: 11.0, nameSize: 28, headingSize: 10.8 },
-        { marginTop: 0.36, marginBottom: 0.36, marginLeft: 0.40, marginRight: 0.40, sectionGap: 6, itemGap: 4, lineHeight: 1.30, fontSize: 10.5, nameSize: 25, headingSize: 10.4, photoSize: Math.min(startPhoto, 148) },
-        { marginTop: 0.34, marginBottom: 0.34, marginLeft: 0.38, marginRight: 0.38, sectionGap: 6, itemGap: 3, lineHeight: 1.26, fontSize: 10.0, nameSize: 23, headingSize: 10.0, photoSize: Math.min(startPhoto, 134) },
-        { marginTop: 0.32, marginBottom: 0.32, marginLeft: 0.36, marginRight: 0.36, sectionGap: 5, itemGap: 3, lineHeight: 1.22, fontSize: 9.6, nameSize: 21, headingSize: 9.8, photoSize: Math.min(startPhoto, 122) },
-        { marginTop: 0.28, marginBottom: 0.28, marginLeft: 0.34, marginRight: 0.34, sectionGap: 4, itemGap: 2, lineHeight: 1.18, fontSize: 9.2, nameSize: 20, headingSize: 9.4, photoSize: Math.min(startPhoto, 108) },
-        { marginTop: 0.25, marginBottom: 0.25, marginLeft: 0.30, marginRight: 0.30, sectionGap: 3, itemGap: 2, lineHeight: 1.14, fontSize: 8.8, nameSize: 19, headingSize: 9.0, photoSize: Math.min(startPhoto, 96) },
-        { marginTop: 0.22, marginBottom: 0.22, marginLeft: 0.28, marginRight: 0.28, sectionGap: 2, itemGap: 2, lineHeight: 1.10, fontSize: 8.5, nameSize: 18, headingSize: 9.0, photoSize: Math.min(startPhoto, 88) },
-      ];
+      // STAGE 1B: Try packing overflow sections into Page 1 open space at 100% natural font size!
+      const natPackCand = { ...natEval.cand, sectionPositions: JSON.parse(JSON.stringify(natEval.cand.sectionPositions || {})) };
+      const natPack = tryPackOverflowSectionsIntoPage1(natPackCand);
+      if (natPack.packed) {
+        const verifyNatPack = evalCand(natPackCand.designSettings, natPackCand.sectionPositions);
+        if (verifyNatPack.fits) {
+          resume.designSettings = verifyNatPack.cand.designSettings;
+          resume.marginIn = verifyNatPack.cand.marginIn;
+          resume.sectionPositions = verifyNatPack.cand.sectionPositions;
+          return {
+            fitted: true,
+            alreadyOnePage: false,
+            startPages: startEval.pages,
+            endPages: 1,
+            fillPct: verifyNatPack.fillPct,
+            appliedChanges: [`Spatial Exact Fit: moved ${natPack.movedLabels.join(', ')} to Page 1 at 100% natural size (${verifyNatPack.fillPct}% fill) ✓`],
+          };
+        }
+      }
 
-      let bestDesign = null;
-      let bestPositions = null;
-      let bestPages = startPages;
-      let packedLabels = [];
+      // STAGE 2: Binary Search GENTLE WHITESPACE TRIM ONLY (t in [0..1], keeps 100% natural font size & 100% scale!)
+      const buildWhitespaceDesign = (t) => ({
+        ...naturalDesign,
+        marginTop: round2(lerp(naturalDesign.marginTop, Math.min(naturalDesign.marginTop, 0.36), t)),
+        marginBottom: round2(lerp(naturalDesign.marginBottom, Math.min(naturalDesign.marginBottom, 0.34), t)),
+        marginLeft: round2(lerp(naturalDesign.marginLeft, Math.min(naturalDesign.marginLeft, 0.42), t)),
+        marginRight: round2(lerp(naturalDesign.marginRight, Math.min(naturalDesign.marginRight, 0.42), t)),
+        sectionGap: Math.round(lerp(naturalDesign.sectionGap, Math.min(naturalDesign.sectionGap, 6), t)),
+        itemGap: Math.round(lerp(naturalDesign.itemGap, Math.min(naturalDesign.itemGap, 3), t)),
+        lineHeight: round2(lerp(naturalDesign.lineHeight, Math.min(naturalDesign.lineHeight, 1.30), t)),
+        contentScale: 1.0,
+      });
 
-      for (let i = 0; i < steps.length; i += 1) {
-        const st = steps[i];
-        const nextDesign = { ...baseDesign };
-        Object.entries(st).forEach(([k, v]) => {
-          if (k === 'photoSize') {
-            if (baseDesign.showPhoto !== false) nextDesign.photoSize = capMin(baseDesign.photoSize || DEFAULT_PHOTO_SIZE_PX, v);
+      const wsMaxEval = evalCand(buildWhitespaceDesign(1.0));
+      if (wsMaxEval.fits) {
+        let lo = 0.0;
+        let hi = 1.0;
+        let bestWs = wsMaxEval;
+        for (let iter = 0; iter < 6; iter += 1) {
+          const mid = (lo + hi) / 2;
+          const ev = evalCand(buildWhitespaceDesign(mid));
+          if (ev.fits) {
+            bestWs = ev;
+            hi = mid; // Try even MORE generous spacing!
           } else {
-            nextDesign[k] = capMin(baseDesign[k] ?? DEFAULT_DESIGN_SETTINGS[k], v);
+            lo = mid;
           }
-        });
-
-        const cand = {
-          ...resume,
-          designSettings: nextDesign,
-          marginIn: nextDesign.marginLeft,
-          sectionPositions: JSON.parse(JSON.stringify(resume.sectionPositions || {})),
+        }
+        resume.designSettings = bestWs.cand.designSettings;
+        resume.marginIn = bestWs.cand.marginIn;
+        resume.sectionPositions = bestWs.cand.sectionPositions;
+        return {
+          fitted: true,
+          alreadyOnePage: false,
+          startPages: startEval.pages,
+          endPages: 1,
+          fillPct: bestWs.fillPct,
+          appliedChanges: [`Exact 1-Page Fit: gentle spacing tune at full ${bestWs.cand.designSettings.fontSize}px font (${bestWs.fillPct}% page fill) ✓`],
         };
-        const count = getCount(cand);
-        if (count < bestPages || bestDesign === null) {
-          bestPages = count;
-          bestDesign = nextDesign;
-        }
-        if (count <= 1) {
-          bestPages = 1;
-          bestDesign = nextDesign;
-          break;
-        }
-        // At moderate-to-compact steps (index >= 2), check if moving remaining Page 2 blocks into Page 1 open space achieves 1 page without shrinking font further!
-        if (i >= 2) {
-          const packRes = tryPackOverflowSectionsIntoPage1(cand);
-          if (packRes.packed) {
-            bestPages = 1;
-            bestDesign = nextDesign;
-            bestPositions = cand.sectionPositions;
-            packedLabels = packRes.movedLabels;
-            break;
+      }
+
+      // STAGE 3: Binary Search NATIVE FONT SIZE at 100% scale (no contentScale shrink!) from natural down to 10.2px
+      const buildFontTightDesign = (t) => ({
+        ...buildWhitespaceDesign(0.75 + 0.25 * t),
+        fontSize: round1(lerp(naturalDesign.fontSize, Math.min(naturalDesign.fontSize, 10.2), t)),
+        headingSize: round1(lerp(naturalDesign.headingSize, Math.min(naturalDesign.headingSize, 10.0), t)),
+        nameSize: Math.round(lerp(naturalDesign.nameSize, Math.min(naturalDesign.nameSize, Math.max(22, naturalDesign.nameSize - 6)), t)),
+        photoSize: curDesign.showPhoto !== false ? Math.round(lerp(naturalDesign.photoSize, Math.min(naturalDesign.photoSize, 138), t)) : naturalDesign.photoSize,
+        contentScale: 1.0,
+      });
+
+      const fontMaxEval = evalCand(buildFontTightDesign(1.0));
+      if (fontMaxEval.fits) {
+        let lo = 0.0;
+        let hi = 1.0;
+        let bestF = fontMaxEval;
+        for (let iter = 0; iter < 6; iter += 1) {
+          const mid = (lo + hi) / 2;
+          const ev = evalCand(buildFontTightDesign(mid));
+          if (ev.fits) {
+            bestF = ev;
+            hi = mid; // Maximize font size!
+          } else {
+            lo = mid;
           }
         }
+        resume.designSettings = bestF.cand.designSettings;
+        resume.marginIn = bestF.cand.marginIn;
+        resume.sectionPositions = bestF.cand.sectionPositions;
+        return {
+          fitted: true,
+          alreadyOnePage: false,
+          startPages: startEval.pages,
+          endPages: 1,
+          fillPct: bestF.fillPct,
+          appliedChanges: [`Exact 1-Page Fit: tuned to ${bestF.cand.designSettings.fontSize}px font & ${bestF.cand.designSettings.lineHeight} LH at 100% scale (${bestF.fillPct}% page fill) ✓`],
+        };
       }
 
-      if (bestDesign) {
-        resume.designSettings = bestDesign;
-        resume.marginIn = bestDesign.marginLeft;
-      }
-      if (bestPositions) {
-        resume.sectionPositions = bestPositions;
+      // STAGE 3B: Try spatial cross-page packing at comfortable 10.5px native font before scaling down!
+      const midFontCand = evalCand(buildFontTightDesign(0.65)).cand;
+      const midPack = tryPackOverflowSectionsIntoPage1(midFontCand);
+      if (midPack.packed) {
+        const verifyMidPack = evalCand(midFontCand.designSettings, midFontCand.sectionPositions);
+        if (verifyMidPack.fits) {
+          resume.designSettings = verifyMidPack.cand.designSettings;
+          resume.marginIn = verifyMidPack.cand.marginIn;
+          resume.sectionPositions = verifyMidPack.cand.sectionPositions;
+          return {
+            fitted: true,
+            alreadyOnePage: false,
+            startPages: startEval.pages,
+            endPages: 1,
+            fillPct: verifyMidPack.fillPct,
+            appliedChanges: [`Spatial Exact Fit: ${verifyMidPack.cand.designSettings.fontSize}px + moved ${midPack.movedLabels.join(', ')} to Page 1 (${verifyMidPack.fillPct}% fill) ✓`],
+          };
+        }
       }
 
-      const appliedChanges = [];
-      if (bestPages <= 1) {
-        const packTxt = packedLabels.length > 0 ? ` + relocated ${packedLabels.join(', ')} to Page 1` : '';
-        appliedChanges.push(`Auto-Fit: ${startPages} pages → 1 page ✓ (${bestDesign.fontSize}px font, ${bestDesign.lineHeight} LH${packTxt})`);
-      } else {
-        appliedChanges.push(`Compressed to max legible density (${bestDesign.fontSize}px, ${bestDesign.lineHeight} LH) — still ${bestPages} pages (trim wording to reach 1 page)`);
+      // STAGE 4: PRECISION 0.5% BINARY SEARCH ON `contentScale` ∈ [0.68, 0.99]
+      // Keeps COMFORTABLE balanced typography (no double-shrinking!) and finds the EXACT LARGEST scale
+      // so the resume fills ~94–98% of Page 1 cleanly with ZERO edge overflow!
+      const balancedScaleBase = {
+        ...naturalDesign,
+        marginTop: Math.min(naturalDesign.marginTop, 0.42),
+        marginBottom: Math.min(naturalDesign.marginBottom, 0.38),
+        marginLeft: Math.min(naturalDesign.marginLeft, 0.44),
+        marginRight: Math.min(naturalDesign.marginRight, 0.44),
+        sectionGap: Math.min(naturalDesign.sectionGap, 10),
+        itemGap: Math.min(naturalDesign.itemGap, 6),
+        lineHeight: Math.min(naturalDesign.lineHeight, 1.40),
+        fontSize: Math.min(naturalDesign.fontSize, 11.2),
+        headingSize: Math.min(naturalDesign.headingSize, 10.8),
+      };
+
+      const minScaleEval = evalCand({ ...balancedScaleBase, contentScale: 0.68 });
+      if (minScaleEval.fits) {
+        let lo = 0.68;
+        let hi = 0.99;
+        let bestS = minScaleEval;
+        for (let iter = 0; iter < 8; iter += 1) {
+          const mid = Math.round(((lo + hi) / 2) * 200) / 200; // 0.5% precision!
+          const ev = evalCand({ ...balancedScaleBase, contentScale: mid });
+          if (ev.fits) {
+            bestS = ev;
+            lo = mid; // Push scale HIGHER so page stays full & crisp, NEVER too small!
+          } else {
+            hi = mid;
+          }
+        }
+        resume.designSettings = bestS.cand.designSettings;
+        resume.marginIn = bestS.cand.marginIn;
+        resume.sectionPositions = bestS.cand.sectionPositions;
+        const pct = Math.round(bestS.cand.designSettings.contentScale * 100);
+        return {
+          fitted: true,
+          alreadyOnePage: false,
+          startPages: startEval.pages,
+          endPages: 1,
+          fillPct: bestS.fillPct,
+          appliedChanges: [`Exact 1-Page Fit: ${pct}% precision scale at ${bestS.cand.designSettings.fontSize}px font (${bestS.fillPct}% page fill, 0px edge overflow) ✓`],
+        };
       }
 
-      return { fitted: bestPages <= 1, alreadyOnePage: false, startPages, endPages: bestPages, appliedChanges };
+      // STAGE 5 (Ultra-dense 3+ page resume): Tight floor + binary search `contentScale` ∈ [0.68, 0.90]
+      const denseScaleBase = {
+        ...balancedScaleBase,
+        marginTop: 0.28,
+        marginBottom: 0.28,
+        marginLeft: 0.34,
+        marginRight: 0.34,
+        sectionGap: 5,
+        itemGap: 3,
+        lineHeight: 1.24,
+        fontSize: 9.8,
+        headingSize: 9.6,
+        nameSize: Math.min(naturalDesign.nameSize, 24),
+        photoSize: curDesign.showPhoto !== false ? Math.min(naturalDesign.photoSize, 128) : naturalDesign.photoSize,
+      };
+      const denseMinEval = evalCand({ ...denseScaleBase, contentScale: 0.68 });
+      if (denseMinEval.fits) {
+        let lo = 0.68;
+        let hi = 0.95;
+        let bestD = denseMinEval;
+        for (let iter = 0; iter < 7; iter += 1) {
+          const mid = Math.round(((lo + hi) / 2) * 200) / 200;
+          const ev = evalCand({ ...denseScaleBase, contentScale: mid });
+          if (ev.fits) {
+            bestD = ev;
+            lo = mid;
+          } else {
+            hi = mid;
+          }
+        }
+        resume.designSettings = bestD.cand.designSettings;
+        resume.marginIn = bestD.cand.marginIn;
+        resume.sectionPositions = bestD.cand.sectionPositions;
+        const pct = Math.round(bestD.cand.designSettings.contentScale * 100);
+        return {
+          fitted: true,
+          alreadyOnePage: false,
+          startPages: startEval.pages,
+          endPages: 1,
+          fillPct: bestD.fillPct,
+          appliedChanges: [`Exact 1-Page Fit: ${pct}% scale & ${bestD.cand.designSettings.fontSize}px dense layout (${bestD.fillPct}% page fill) ✓`],
+        };
+      }
+
+      // Still > 1 page even at minimum legible floor — apply best non-overflowing settings and report honestly
+      resume.designSettings = denseMinEval.cand.designSettings;
+      resume.marginIn = denseMinEval.cand.marginIn;
+      resume.sectionPositions = denseMinEval.cand.sectionPositions;
+      return {
+        fitted: false,
+        alreadyOnePage: false,
+        startPages: startEval.pages,
+        endPages: denseMinEval.pages,
+        fillPct: denseMinEval.fillPct,
+        appliedChanges: [`Compressed to max legible floor (9.8px, 68% scale) — still ${denseMinEval.pages} pages (trim wording to reach 1 page)`],
+      };
     }
 
     async function applyCompactOnePageDesign() {
@@ -3125,11 +3481,11 @@
       syncDesignControls(r);
       renderPreviewPanel();
       if (result.alreadyOnePage) {
-        showStatusBanner('success', 'Your resume already fits cleanly on 1 page!');
+        showStatusBanner('success', 'Verified: Your live resume preview already fits cleanly on 1 page with zero overflow!');
       } else if (result.fitted) {
-        showStatusBanner('success', `Fitted resume cleanly from ${result.startPages} pages → 1 page (${r.designSettings.fontSize}px font, ${r.designSettings.lineHeight} line-height). Press Undo (Ctrl+Z) to revert.`);
+        showStatusBanner('success', `Fitted resume cleanly from ${result.startPages} pages → 1 page (${r.designSettings.fontSize}px font, ${Math.round((r.designSettings.contentScale || 1) * 100)}% fit scale). Press Undo (Ctrl+Z) to revert.`);
       } else {
-        showStatusBanner('warning', `Applied maximum legible compression (${r.designSettings.fontSize}px), still ${result.endPages} pages. Ask RESUMATE AI to tighten wording so it fits on 1 page.`);
+        showStatusBanner('warning', `Applied maximum legible compression (${r.designSettings.fontSize}px, ${Math.round((r.designSettings.contentScale || 1) * 100)}% scale), still ${result.endPages} pages. Ask RESUMATE AI to tighten wording so it fits on 1 page.`);
       }
     }
 
@@ -3163,10 +3519,57 @@
       btn.classList.toggle('text-slate-500', !on);
     }
 
-    // Capture lightweight live JPEG screenshots of every rendered resume page (max 4 pages)
-    // so Gemini literally SEES the user's current visual layout on every chat prompt!
+    // Fallback Structural Canvas Snapshot (guarantees Gemini ALWAYS receives a clear visual page map even if SVG foreignObject fails!)
+    function renderStructuralFallbackSnapshot(paper, effPaper, sectionsOnPage, pageNum, totalPages, bgColor) {
+      const c = document.createElement('canvas');
+      const sc = 0.72;
+      c.width = Math.round(paper.widthPx * sc);
+      c.height = Math.round(paper.heightPx * sc);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = bgColor || '#ffffff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(2, 2, c.width - 4, c.height - 4);
+      const sx = c.width / effPaper.widthPx;
+      const sy = c.height / effPaper.heightPx;
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(`LIVE LAYOUT MAP — PAGE ${pageNum} OF ${totalPages}`, 14, 22);
+      sectionsOnPage.forEach((sec) => {
+        const x = Math.round(sec.x * sx);
+        const y = Math.round(sec.y * sy);
+        const w = Math.max(30, Math.round(sec.width * sx));
+        const h = Math.max(18, Math.round(sec.height * sy));
+        ctx.fillStyle = 'rgba(124, 58, 237, 0.10)';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#7c3aed';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x, y, w, h);
+        ctx.fillStyle = '#4c1d95';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`${sec.label} [${sec.moveId}] (${sec.x},${sec.y} ${sec.width}×${sec.height})`, x + 5, y + 14, Math.max(20, w - 8));
+      });
+      const dataUrl = c.toDataURL('image/jpeg', 0.82);
+      return { pageNumber: pageNum, mimeType: 'image/jpeg', data: dataUrl.split(',')[1] || '', dataUrl, isWireframeFallback: true };
+    }
+
+    function openVisionLightbox(msgId, pageIdx) {
+      const thumbs = state.sessionPreviewThumbs?.[msgId] || [];
+      const item = thumbs[pageIdx];
+      if (!item || !item.dataUrl) return;
+      const img = document.getElementById('vision-lightbox-img');
+      const title = document.getElementById('vision-lightbox-title');
+      if (img) img.src = item.dataUrl;
+      if (title) title.textContent = `Live Resume Preview Sent to AI — Page ${item.pageNumber}${item.isWireframeFallback ? ' (Structural Map)' : ''}`;
+      openModal('vision-lightbox-modal');
+    }
+
+    // Bulletproof 3-Tier Live Preview Screenshot Capture for Gemini Vision:
+    // Captures the ACTUAL live rendered pages on-screen so Chromium ALWAYS paints them cleanly,
+    // with font-stripped retry & structural canvas fallback!
     async function captureLivePreviewImagesForAi(resume, telemetryBundle) {
-      const { paper, pagesHtml } = telemetryBundle;
+      const { paper, effPaper, pagesHtml, sectionsLayout } = telemetryBundle;
       const d = resume.designSettings || DEFAULT_DESIGN_SETTINGS;
       const bgColor = d.pageBgColor || '#ffffff';
       const maxPagesToSee = Math.min(4, pagesHtml.length);
@@ -3179,7 +3582,7 @@
 
       const staging = document.createElement('div');
       staging.className = 'exporting-pdf';
-      staging.style.cssText = `position:fixed;left:-99999px;top:0;width:${paper.widthPx}px;height:${paper.heightPx}px;overflow:hidden;background:${bgColor};color-scheme:light;pointer-events:none;`;
+      staging.style.cssText = `position:fixed;left:0;top:0;width:${paper.widthPx}px;height:${paper.heightPx}px;overflow:hidden;opacity:0.001;z-index:-1;background:${bgColor};color-scheme:light;pointer-events:none;`;
       document.body.appendChild(staging);
 
       try {
@@ -3188,14 +3591,34 @@
           const sheetEl = staging.querySelector('.physical-paper-sheet');
           if (!sheetEl) continue;
           await waitForDomAndAssetsReady(staging);
+          let captured = null;
+          // Tier 1: Full-fidelity live screenshot with embedded Google Fonts
           try {
-            const shot = await captureDirectSheetScreenshot(sheetEl, paper, bgColor, fontEmbedCSS, 0.88);
-            const jpgUrl = shot.canvas.toDataURL('image/jpeg', 0.78);
+            const shot = await captureDirectSheetScreenshot(sheetEl, paper, bgColor, fontEmbedCSS, 0.86);
+            const jpgUrl = shot.canvas.toDataURL('image/jpeg', 0.80);
             const b64 = jpgUrl.split(',')[1] || '';
-            if (b64) {
-              images.push({ pageNumber: i + 1, mimeType: 'image/jpeg', data: b64 });
-            }
+            if (b64) captured = { pageNumber: i + 1, mimeType: 'image/jpeg', data: b64, dataUrl: jpgUrl };
           } catch {}
+
+          // Tier 2: Retry without heavy embedded base64 font CSS
+          if (!captured) {
+            try {
+              const shot2 = await captureDirectSheetScreenshot(sheetEl, paper, bgColor, '', 0.76);
+              const jpgUrl2 = shot2.canvas.toDataURL('image/jpeg', 0.78);
+              const b64_2 = jpgUrl2.split(',')[1] || '';
+              if (b64_2) captured = { pageNumber: i + 1, mimeType: 'image/jpeg', data: b64_2, dataUrl: jpgUrl2 };
+            } catch {}
+          }
+
+          // Tier 3: Guaranteed Canvas 2D Structural Map fallback so AI NEVER flies blind!
+          if (!captured) {
+            const secsOnPage = (sectionsLayout || []).filter((s) => s.pageIndex === i);
+            captured = renderStructuralFallbackSnapshot(paper, effPaper, secsOnPage, i + 1, pagesHtml.length, bgColor);
+          }
+
+          if (captured && captured.data) {
+            images.push(captured);
+          }
         }
       } finally {
         if (staging.parentNode) document.body.removeChild(staging);
@@ -5335,9 +5758,10 @@ LIVE VISUAL PREVIEW & SPATIAL LAYOUT CONTROL (CRITICAL):
   * page1OpenPockets: exact open whitespace zones (x, y, width, availableHeight) on Page 1
 - You can freely move sections across pages (e.g. pull a Page 2 section into a Page 1 open pocket), shift (dx/dy), widen/narrow (width), or reset positions via "documentActions.sectionAdjustments"!
 - Ensure placed sections never overlap existing blocks (check x, y, width, height against sectionsLayout) and stay inside paperDimensions.
+- STRICT PAPER EDGE AWARENESS: Every section you move or resize via "sectionAdjustments" MUST stay strictly inside [LIVE VISUAL LAYOUT TELEMETRY].safePaperBounds (x >= minX, x + width <= maxX, y >= minY, y + height <= maxY) with ZERO edge violations.
 - When the user asks to fit everything on 1 page:
-  1) ALWAYS set "documentActions": { "fitToOnePage": true } (and optionally include "sectionAdjustments" to relocate Page 2 sections cleanly into page1OpenPockets!).
-  2) If telemetry shows heavy overflow (e.g. renderedPageCount >= 2 with lastPageFillPercent > 40%, or 3+ pages), ALSO set "hasProposedEdit": true with a tightened, punchier "proposedEdit" (trimming filler words only — never inventing or dropping real jobs/degrees) so spatial layout, spacing, AND concise copy work together cleanly.
+  1) ALWAYS set "documentActions": { "fitToOnePage": true } and leave "designSettings" font/margin/scale fields null so the app's precision binary-search solver finds the LARGEST crisp scale that fills ~94–98% of Page 1 without making text tiny or loose!
+  2) If telemetry shows heavy overflow (e.g. renderedPageCount >= 2 with lastPageFillPercent > 45%, or 3+ pages), ALSO set "hasProposedEdit": true with a tightened, punchier "proposedEdit" (trimming filler words only — never inventing or dropping real jobs/degrees).
 
 If the user ONLY requests design/layout/template/margin/font/photo/order changes, set "hasProposedEdit": false and "proposedEdit": null so their resume facts remain untouched. If they request BOTH design changes AND text edits, include BOTH!
 
@@ -5358,12 +5782,16 @@ ALLOWED "targetSection" VALUES & EXACT "proposedContent" SHAPES:
 - "extraSections": COMPLETE array [{ "heading": "", "content": "" }]
 - "full_resume": Object containing ONLY the sections being updated (personalInfo, summary, experiences, education, skills, projects, certifications, extraSections).
 
-ALWAYS respond strictly in valid JSON:
+ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustments" whenever moving, resizing, or relocating sections across pages improves layout or fits content onto 1 page; include "designSettings.contentScale" 0.68–1.0 if proportional scaling helps):
 {
-  "assistantMessage": "Clear response grounded in the full chat session and current resume.",
+  "assistantMessage": "Clear response grounded in the attached live preview screenshot(s), telemetry, and full chat session.",
   "templateId": null,
   "designSettings": null,
-  "documentActions": null,
+  "documentActions": {
+    "fitToOnePage": false,
+    "sectionAdjustments": [],
+    "resetSectionPositions": false
+  },
   "hasProposedEdit": false,
   "proposedEdit": null
 }`;
@@ -5371,7 +5799,7 @@ ALWAYS respond strictly in valid JSON:
         const indicatorEl = document.getElementById('chat-loading-status');
         if (indicatorEl) indicatorEl.textContent = 'Inspecting live resume preview...';
 
-        const telemetryBundle = measureResumeLayoutTelemetry(resume);
+        const telemetryBundle = measureResumeLayoutTelemetry(resume, { editable: !state.printPreviewMode });
         const liveTelemetry = telemetryBundle.telemetry;
         let previewImagesForAi = [];
         if (state.aiPreviewVision !== false) {
@@ -5379,8 +5807,18 @@ ALWAYS respond strictly in valid JSON:
           try {
             previewImagesForAi = await captureLivePreviewImagesForAi(resume, telemetryBundle);
           } catch {}
+          if (previewImagesForAi.length > 0) {
+            state.sessionPreviewThumbs[userMsgId] = previewImagesForAi.map((im) => ({
+              pageNumber: im.pageNumber,
+              dataUrl: im.dataUrl,
+              isWireframeFallback: Boolean(im.isWireframeFallback),
+            }));
+            userMsg.sentPreviewPages = previewImagesForAi.length;
+            renderChatPanel();
+          }
         }
-        if (indicatorEl) indicatorEl.textContent = `Thinking with ${state.selectedModelId || 'gemini-3.5-flash-lite'}...`;
+        const indicatorEl2 = document.getElementById('chat-loading-status');
+        if (indicatorEl2) indicatorEl2.textContent = `Analyzing ${previewImagesForAi.length > 0 ? `${previewImagesForAi.length} live preview page(s)` : 'resume'} with ${state.selectedModelId || 'gemini-3.5-flash-lite'}...`;
 
         const liveResumeSnapshotJson = JSON.stringify({
           title: resume.title,
@@ -5441,15 +5879,16 @@ ALWAYS respond strictly in valid JSON:
               }
             }
             if (isLatestTurn) {
-              const visionNote = previewImagesForAi.length > 0
-                ? `[LIVE VISUAL PREVIEW ATTACHED: ${previewImagesForAi.length} of ${liveTelemetry.renderedPageCount} rendered page screenshot(s) included inline below]`
-                : `[LIVE VISUAL PREVIEW: Telemetry attached (screenshots off/unavailable)]`;
-              turnText = `${visionNote}\n\n[LIVE VISUAL LAYOUT TELEMETRY (MEASURED FROM BROWSER DOM)]\n${liveTelemetryJson}\n\n[CURRENT LIVE RESUME SNAPSHOT (JSON)]\n${liveResumeSnapshotJson}\n\n[ACTION MODE: ${actionType}]\n\n[USER MESSAGE]:\n${turnText}`;
-              parts.unshift({ text: turnText });
+              const visionParts = [];
               previewImagesForAi.forEach((imgObj) => {
-                parts.push({ text: `[LIVE RENDERED RESUME PREVIEW — PAGE ${imgObj.pageNumber} OF ${liveTelemetry.renderedPageCount}]` });
-                parts.push({ inlineData: { mimeType: imgObj.mimeType, data: imgObj.data } });
+                visionParts.push({ text: `[ACTUAL LIVE RENDERED RESUME PREVIEW — PAGE ${imgObj.pageNumber} OF ${liveTelemetry.renderedPageCount} — INSPECT THIS IMAGE CAREFULLY]` });
+                visionParts.push({ inlineData: { mimeType: imgObj.mimeType, data: imgObj.data } });
               });
+              const visionNote = previewImagesForAi.length > 0
+                ? `[LIVE VISUAL PREVIEW ATTACHED ABOVE: ${previewImagesForAi.length} of ${liveTelemetry.renderedPageCount} rendered page screenshot(s) included inline]`
+                : `[LIVE VISUAL PREVIEW: Telemetry attached (screenshots disabled)]`;
+              turnText = `${visionNote}\n\n[LIVE VISUAL LAYOUT TELEMETRY (MEASURED FROM ACTUAL LIVE PREVIEW)]\n${liveTelemetryJson}\n\n[CURRENT LIVE RESUME SNAPSHOT (JSON)]\n${liveResumeSnapshotJson}\n\n[ACTION MODE: ${actionType}]\n\n[USER MESSAGE]:\n${turnText}`;
+              parts.unshift(...visionParts, { text: turnText });
             } else {
               parts.unshift({ text: turnText });
             }
@@ -5573,16 +6012,24 @@ ALWAYS respond strictly in valid JSON:
             applyTemplateDesignPreset(resume, resume.templateId || 'modern-minimal');
             appliedDesignChanges.push('Reset design to template defaults');
           }
-          if (Object.keys(cleanDesignPatch).length > 0) {
-            resume.designSettings = { ...resume.designSettings, ...cleanDesignPatch };
-            if (cleanDesignPatch.photoShape && resume.personalInfo) {
-              resume.personalInfo.photoShape = cleanDesignPatch.photoShape;
+          // When running exact 1-page auto-fit, skip AI's blind guessed micro-font/scale shrink
+          // so the DOM binary-search solver picks the LARGEST crisp size that fills ~95% of Page 1!
+          const effectiveDesignPatch = { ...cleanDesignPatch };
+          if (shouldRunOnePageFit) {
+            ['fontSize', 'nameSize', 'headingSize', 'lineHeight', 'sectionGap', 'itemGap', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'contentScale'].forEach((k) => {
+              delete effectiveDesignPatch[k];
+            });
+          }
+          if (Object.keys(effectiveDesignPatch).length > 0) {
+            resume.designSettings = { ...resume.designSettings, ...effectiveDesignPatch };
+            if (effectiveDesignPatch.photoShape && resume.personalInfo) {
+              resume.personalInfo.photoShape = effectiveDesignPatch.photoShape;
             }
             const d = resume.designSettings;
             if (d.marginTop === d.marginBottom && d.marginLeft === d.marginRight && d.marginTop === d.marginLeft) {
               resume.marginIn = d.marginTop;
             }
-            Object.entries(cleanDesignPatch).forEach(([k, v]) => {
+            Object.entries(effectiveDesignPatch).forEach(([k, v]) => {
               appliedDesignChanges.push(`${k}: ${v}`);
             });
           }
@@ -5618,7 +6065,9 @@ ALWAYS respond strictly in valid JSON:
           }
           if (aiSectionAdj.length > 0) {
             const adjLogs = applyAiSectionAdjustmentsToResume(resume, aiSectionAdj, telemetryBundle);
+            const clampedAfterAdj = clampAllMovedSectionsInsidePaper(resume);
             if (adjLogs.length > 0) appliedDesignChanges.push(...adjLogs);
+            if (clampedAfterAdj > 0) appliedDesignChanges.push(`Edge-clamped ${clampedAfterAdj} section(s) inside paper bounds`);
           }
 
           if (shouldRunOnePageFit) {
@@ -5637,15 +6086,16 @@ ALWAYS respond strictly in valid JSON:
         }
 
         const hasEdit = Boolean(aiResult.proposedEdit && aiResult.hasProposedEdit !== false);
-        const postTelemetry = measureResumeLayoutTelemetry(resume).telemetry;
+        const postTelemetry = measureResumeLayoutTelemetry(resume, { editable: !state.printPreviewMode }).telemetry;
         let finalAssistantText = aiResult.assistantMessage || 'Done.';
         if (shouldRunOnePageFit) {
-          if (postTelemetry.renderedPageCount <= 1) {
-            finalAssistantText += `\n\n✓ Verified live layout: now fits cleanly on 1 page (${resume.designSettings.fontSize}px font, ${resume.designSettings.lineHeight} line-height, ${resume.designSettings.marginTop}" margins).`;
+          const scPct = Math.round((resume.designSettings?.contentScale || 1) * 100);
+          if (postTelemetry.trulyFitsOnePage) {
+            finalAssistantText += `\n\n✓ Verified live preview & PDF export: exact 1-page fit (${postTelemetry.page1FillPercent}% page fill, 0px edge overflow · ${resume.designSettings.fontSize}px font, ${resume.designSettings.lineHeight} LH${scPct < 100 ? `, ${scPct}% fit scale` : ''}).`;
           } else if (hasEdit) {
-            finalAssistantText += `\n\nCurrently ${postTelemetry.renderedPageCount} pages before text trimming — click "Apply Changes" below and I will automatically re-fit the spacing to 1 page.`;
+            finalAssistantText += `\n\nLive preview is currently ${postTelemetry.renderedPageCount} page(s)${postTelemetry.page1BottomClippedPx > 4 ? ` (+${postTelemetry.page1BottomClippedPx}px vertical overflow)` : ''} before text trimming — click "Apply Changes" below and I will automatically re-fit everything onto 1 page.`;
           } else {
-            finalAssistantText += `\n\nNote: Even at minimum legible density (${resume.designSettings.fontSize}px), your resume still fills ${postTelemetry.renderedPageCount} pages (Page ${postTelemetry.renderedPageCount} is ${postTelemetry.lastPageFillPercent}% full). Tell me to tighten/shorten bullets and I'll condense it to fit on 1 page.`;
+            finalAssistantText += `\n\nHonest check: Live preview still spans ${postTelemetry.renderedPageCount} page(s)${postTelemetry.page1BottomClippedPx > 4 ? ` (+${postTelemetry.page1BottomClippedPx}px overflow)` : ''} even at ${resume.designSettings.fontSize}px / ${scPct}% scale. Ask me to condense bullet copy or hide an optional section to fit cleanly on 1 page.`;
           }
         }
         const assistantMsg = {
@@ -5820,6 +6270,26 @@ ALWAYS respond strictly in valid JSON:
                 : ''
             }
             <p class="whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+            ${
+              isUser && (state.sessionPreviewThumbs[m.id]?.length > 0 || m.sentPreviewPages > 0)
+                ? (() => {
+                    const thumbs = state.sessionPreviewThumbs[m.id] || [];
+                    return `
+                      <div class="mt-2 pt-2 border-t border-white/20 flex flex-wrap items-center gap-1.5">
+                        <span class="text-[10px] font-medium text-purple-100/95">👁 Live preview sent (${thumbs.length || m.sentPreviewPages}p):</span>
+                        ${thumbs
+                          .map(
+                            (th, tIdx) => `
+                            <button type="button" onclick="openVisionLightbox('${m.id}', ${tIdx})" title="Click to inspect exact Page ${th.pageNumber} screenshot sent to AI" class="inline-flex items-center gap-1 rounded-md bg-white/15 hover:bg-white/25 p-0.5 pr-1.5 transition">
+                              <img src="${th.dataUrl}" alt="Page ${th.pageNumber}" class="h-7 w-5 object-cover rounded-sm border border-white/40 bg-white" />
+                              <span class="text-[9.5px] font-semibold text-white">P${th.pageNumber}</span>
+                            </button>`
+                          )
+                          .join('')}
+                      </div>`;
+                  })()
+                : ''
+            }
             ${m.modelUsed ? `<div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400"><span>Model: ${escapeHtml(m.modelUsed)}</span>${m.sawPreviewPages > 0 ? `<span class="inline-flex items-center gap-1 rounded-full bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800/80 px-1.5 py-0.5 text-[9.5px] font-medium text-purple-700 dark:text-purple-300" title="AI inspected live rendered preview screenshots + DOM telemetry">👁 Saw ${m.sawPreviewPages}p live preview</span>` : ''}</div>` : ''}
           </div>`;
 
@@ -12580,17 +13050,26 @@ ALWAYS respond strictly in valid JSON:
             if (destSheet && el.parentElement !== destSheet) {
               destSheet.appendChild(el);
             }
-            const ax = Number.isFinite(Number(saved.absX)) ? Math.round(Number(saved.absX)) : Math.round((resume.designSettings?.marginLeft ?? 0.5) * CSS_DPI);
-            const ay = Number.isFinite(Number(saved.absY)) ? Math.round(Number(saved.absY)) : Math.round((resume.designSettings?.marginTop ?? 0.5) * CSS_DPI);
+            const edgePad = SHEET_SAFE_EDGE_PX;
+            const safeW = Number.isFinite(Number(saved.w)) && Number(saved.w) >= 110
+              ? Math.round(Math.min(paper.widthPx - edgePad * 2, Number(saved.w)))
+              : null;
+            const rawAx = Number.isFinite(Number(saved.absX)) ? Math.round(Number(saved.absX)) : Math.round((resume.designSettings?.marginLeft ?? 0.5) * CSS_DPI);
+            const rawAy = Number.isFinite(Number(saved.absY)) ? Math.round(Number(saved.absY)) : Math.round((resume.designSettings?.marginTop ?? 0.5) * CSS_DPI);
+            const maxAx = safeW ? Math.max(edgePad, paper.widthPx - edgePad - safeW) : paper.widthPx - 120;
+            const ax = Math.max(edgePad, Math.min(maxAx, rawAx));
+            const ay = Math.max(edgePad, Math.min(paper.heightPx - 48, rawAy));
             el.style.position = 'absolute';
             el.style.left = `${ax}px`;
             el.style.top = `${ay}px`;
             el.style.margin = '0';
             el.style.zIndex = String(saved.z || 28);
             el.style.boxSizing = 'border-box';
-            if (Number.isFinite(Number(saved.w)) && Number(saved.w) >= 110) {
-              el.style.width = `${Math.round(Number(saved.w))}px`;
-              el.style.maxWidth = 'none';
+            if (safeW) {
+              el.style.width = `${safeW}px`;
+              el.style.maxWidth = `${paper.widthPx - edgePad - ax}px`;
+            } else {
+              el.style.maxWidth = `${paper.widthPx - edgePad - ax}px`;
             }
             el.setAttribute('data-is-moved', '1');
             el.setAttribute('data-pos-mode', 'abs');
@@ -12686,9 +13165,40 @@ ALWAYS respond strictly in valid JSON:
       });
     }
 
+    function applyContentScaleToPages(pagesHtml, paper, effPaper, contentScale) {
+      if (contentScale >= 0.999) return pagesHtml;
+      return pagesHtml.map((pageHtml) => {
+        const host = document.createElement('div');
+        host.innerHTML = pageHtml;
+        const sheet = host.querySelector('.physical-paper-sheet');
+        if (!sheet) return pageHtml;
+        const stage = document.createElement('div');
+        stage.className = 'content-scale-stage';
+        stage.style.cssText = `width:${effPaper.widthPx}px;height:${effPaper.heightPx}px;transform:scale(${contentScale});transform-origin:top left;position:relative;overflow:hidden;box-sizing:border-box;`;
+        if (sheet.classList.contains('flex')) {
+          stage.style.display = 'flex';
+          if (sheet.classList.contains('flex-row-reverse')) stage.style.flexDirection = 'row-reverse';
+          sheet.classList.remove('flex', 'flex-row-reverse');
+        }
+        while (sheet.firstChild) {
+          stage.appendChild(sheet.firstChild);
+        }
+        sheet.appendChild(stage);
+        sheet.style.width = `${paper.widthPx}px`;
+        sheet.style.height = `${paper.heightPx}px`;
+        sheet.setAttribute('data-content-scale', String(contentScale));
+        sheet.setAttribute('data-eff-width', String(effPaper.widthPx));
+        sheet.setAttribute('data-eff-height', String(effPaper.heightPx));
+        return host.innerHTML;
+      });
+    }
+
     function buildPaginatedPagesHtml(resume, paper, marginIn = 0.6, editable = true) {
-      const rawPages = buildPaginatedPagesHtmlRaw(resume, paper, marginIn, editable);
-      return applyMovableSectionLayoutToPages(rawPages, resume, paper, editable);
+      const design = { ...DEFAULT_DESIGN_SETTINGS, ...(resume?.designSettings || {}) };
+      const { effPaper, contentScale } = getEffectiveScaledPaper(paper, design);
+      const rawPages = buildPaginatedPagesHtmlRaw(resume, effPaper, marginIn, editable);
+      const movablePages = applyMovableSectionLayoutToPages(rawPages, resume, effPaper, editable);
+      return applyContentScaleToPages(movablePages, paper, effPaper, contentScale);
     }
 
     // Quick 1-click button to move a section onto another page (e.g. Page 2 -> Page 1 open space!)
@@ -12742,7 +13252,7 @@ ALWAYS respond strictly in valid JSON:
     function applyAiSectionAdjustmentsToResume(resume, adjustments, telemetryBundle) {
       if (!Array.isArray(adjustments) || adjustments.length === 0) return [];
       const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
-      const paper = telemetryBundle?.paper || PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const paper = telemetryBundle?.effPaper || getEffectiveScaledPaper(PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter, resume.designSettings).effPaper;
       const layoutList = telemetryBundle?.sectionsLayout || [];
       const maxPageIdx = Math.max(0, (telemetryBundle?.telemetry?.renderedPageCount || 1) - 1);
 
@@ -12761,7 +13271,8 @@ ALWAYS respond strictly in valid JSON:
           const match =
             layoutList.find((s) => s.pageIndex > 0 && s.moveId.endsWith(`::${cleanRole}`)) ||
             layoutList.find((s) => s.moveId.endsWith(`::${cleanRole}`)) ||
-            layoutList.find((s) => s.label.toLowerCase() === cleanRole);
+            layoutList.find((s) => s.label.toLowerCase() === cleanRole) ||
+            layoutList.find((s) => s.label.toLowerCase().includes(cleanRole) || cleanRole.includes(s.label.toLowerCase()));
           if (match) moveId = match.moveId;
         }
         if (!moveId) return;
@@ -12798,37 +13309,48 @@ ALWAYS respond strictly in valid JSON:
 
         const nextZ = Number.isFinite(Number(raw.z)) ? Math.round(Number(raw.z)) : (existing.z || ++maxZ);
 
+        const pad = SHEET_SAFE_EDGE_PX;
+        const safeW = nextW ? Math.round(Math.min(paper.widthPx - pad * 2, Math.max(130, nextW))) : undefined;
+        const estW = safeW || secInfo?.width || 240;
+        const estH = secInfo?.height || 120;
+        const maxSafeX = Math.max(pad, paper.widthPx - pad - estW);
+        const maxSafeY = Math.max(pad, paper.heightPx - pad - Math.min(estH, paper.heightPx - pad * 2));
+
         if (hasAbs) {
           const curX = Number.isFinite(Number(raw.absX)) ? Number(raw.absX) : (Number.isFinite(Number(existing.absX)) ? Number(existing.absX) : (secInfo?.x ?? 48));
           const curY = Number.isFinite(Number(raw.absY)) ? Number(raw.absY) : (Number.isFinite(Number(existing.absY)) ? Number(existing.absY) : (secInfo?.y ?? 48));
-          const clampedX = Math.round(Math.max(12, Math.min(paper.widthPx - 120, curX)));
-          const clampedY = Math.round(Math.max(12, Math.min(paper.heightPx - 60, curY)));
+          const clampedX = Math.round(Math.max(pad, Math.min(maxSafeX, curX)));
+          const clampedY = Math.round(Math.max(pad, Math.min(maxSafeY, curY)));
           const destPg = targetPage !== undefined ? targetPage : (Number.isInteger(existing.targetPage) ? existing.targetPage : (secInfo?.pageIndex ?? 0));
           map[moveId] = {
             targetPage: destPg,
             absX: clampedX,
             absY: clampedY,
-            ...(nextW ? { w: nextW } : {}),
+            ...(safeW ? { w: safeW } : {}),
             z: nextZ,
           };
-          logs.push(`Moved ${label} → P${destPg + 1} (${clampedX}, ${clampedY})${nextW ? ` W:${nextW}px` : ''}`);
+          logs.push(`Moved ${label} → P${destPg + 1} (${clampedX}, ${clampedY})${safeW ? ` W:${safeW}px` : ''}`);
         } else {
           const dx = Number.isFinite(Number(raw.dx)) ? Math.round(Number(raw.dx)) : (Number.isFinite(Number(raw.x)) ? Math.round(Number(raw.x)) - (Number(existing.x) || 0) : 0);
           const dy = Number.isFinite(Number(raw.dy)) ? Math.round(Number(raw.dy)) : (Number.isFinite(Number(raw.y)) ? Math.round(Number(raw.y)) - (Number(existing.y) || 0) : 0);
           if (Number.isFinite(Number(existing.absX)) && Number.isFinite(Number(existing.absY))) {
             map[moveId] = {
               ...existing,
-              absX: Math.round(Math.max(12, Math.min(paper.widthPx - 120, Number(existing.absX) + dx))),
-              absY: Math.round(Math.max(12, Math.min(paper.heightPx - 60, Number(existing.absY) + dy))),
-              ...(nextW ? { w: nextW } : {}),
+              absX: Math.round(Math.max(pad, Math.min(maxSafeX, Number(existing.absX) + dx))),
+              absY: Math.round(Math.max(pad, Math.min(maxSafeY, Number(existing.absY) + dy))),
+              ...(safeW ? { w: safeW } : {}),
               z: nextZ,
             };
           } else {
+            const origX = (secInfo?.x ?? pad) - (Number(existing.x) || 0);
+            const origY = (secInfo?.y ?? pad) - (Number(existing.y) || 0);
+            const targetAbsX = Math.max(pad, Math.min(maxSafeX, (secInfo?.x ?? pad) + dx));
+            const targetAbsY = Math.max(pad, Math.min(maxSafeY, (secInfo?.y ?? pad) + dy));
             map[moveId] = {
               ...existing,
-              x: (Number(existing.x) || 0) + dx,
-              y: (Number(existing.y) || 0) + dy,
-              ...(nextW ? { w: nextW } : {}),
+              x: Math.round(targetAbsX - origX),
+              y: Math.round(targetAbsY - origY),
+              ...(safeW ? { w: safeW } : {}),
               z: nextZ,
             };
           }
@@ -13065,8 +13587,9 @@ ALWAYS respond strictly in valid JSON:
     }
 
     function getSheetSnapTargets(sheet, draggingEl, resume) {
-      const paper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const rawPaper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
       const d = resume.designSettings || DEFAULT_DESIGN_SETTINGS;
+      const { effPaper: paper } = getEffectiveScaledPaper(rawPaper, d);
       const mL = Math.round((d.marginLeft ?? 0.55) * CSS_DPI);
       const mR = Math.round((d.marginRight ?? 0.55) * CSS_DPI);
       const mT = Math.round((d.marginTop ?? 0.55) * CSS_DPI);
@@ -13094,17 +13617,18 @@ ALWAYS respond strictly in valid JSON:
 
     function renderSnapGuides(sheet, snapX, snapY) {
       sheet.querySelectorAll('.snap-guide-line').forEach((n) => n.remove());
+      const host = sheet.querySelector('.content-scale-stage') || sheet;
       if (snapX !== null) {
         const v = document.createElement('div');
         v.className = 'wysiwyg-only snap-guide-line snap-guide-v';
         v.style.left = `${snapX}px`;
-        sheet.appendChild(v);
+        host.appendChild(v);
       }
       if (snapY !== null) {
         const h = document.createElement('div');
         h.className = 'wysiwyg-only snap-guide-line snap-guide-h';
         h.style.top = `${snapY}px`;
-        sheet.appendChild(h);
+        host.appendChild(h);
       }
     }
 
@@ -13148,7 +13672,8 @@ ALWAYS respond strictly in valid JSON:
       const originSheet = el.closest('.physical-paper-sheet');
       if (!originSheet) return;
 
-      const paper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const rawPaper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const { effPaper: paper } = getEffectiveScaledPaper(rawPaper, resume.designSettings);
       const originPageIdx = Number(originSheet.getAttribute('data-page-index') || 0);
       let activeSheet = originSheet;
       let activePageIdx = originPageIdx;
@@ -13233,8 +13758,8 @@ ALWAYS respond strictly in valid JSON:
           activePageIdx = Number(activeSheet.getAttribute('data-page-index') || 0);
           isAbsMode = true;
           movedAny = true;
-          // Live-reparent element right into the destination sheet (inherits 100% identical CSS vars & fonts!)
-          activeSheet.appendChild(el);
+          // Live-reparent element right into the destination sheet (or its scale stage!)
+          (activeSheet.querySelector('.content-scale-stage') || activeSheet).appendChild(el);
           el.style.position = 'absolute';
           el.style.width = `${Math.round(elW)}px`;
           el.style.maxWidth = 'none';
@@ -13268,8 +13793,13 @@ ALWAYS respond strictly in valid JSON:
           targetTop = baseTop0 + rawDy;
         }
 
-        targetLeft = Math.max(-elW + 48, Math.min(paper.widthPx - 48, targetLeft));
-        targetTop = Math.max(-elH + 40, Math.min(paper.heightPx - 40, targetTop));
+        const edgePad = SHEET_SAFE_EDGE_PX;
+        const maxLeftBound = Math.max(edgePad, paper.widthPx - edgePad - Math.min(elW, paper.widthPx - edgePad * 2));
+        const maxTopBound = Math.max(edgePad, paper.heightPx - edgePad - Math.min(elH, paper.heightPx - edgePad * 2));
+        const hitEdge =
+          targetLeft < edgePad || targetLeft > maxLeftBound || targetTop < edgePad || targetTop > maxTopBound;
+        targetLeft = Math.max(edgePad, Math.min(maxLeftBound, targetLeft));
+        targetTop = Math.max(edgePad, Math.min(maxTopBound, targetTop));
 
         let snapLineX = null;
         let snapLineY = null;
@@ -13299,7 +13829,7 @@ ALWAYS respond strictly in valid JSON:
           el.style.left = `${curX}px`;
           el.style.top = `${curY}px`;
         }
-        coordsBadge.textContent = `P${activePageIdx + 1} · ${Math.round(targetLeft)}px, ${Math.round(targetTop)}px`;
+        coordsBadge.textContent = `P${activePageIdx + 1} · ${Math.round(targetLeft)}, ${Math.round(targetTop)}${hitEdge ? ' · Edge' : ''}`;
         renderSnapGuides(activeSheet, snapLineX, snapLineY);
       };
 
@@ -13361,9 +13891,13 @@ ALWAYS respond strictly in valid JSON:
       const sheet = el.closest('.physical-paper-sheet');
       if (!sheet) return;
 
-      const paper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const { effPaper: paper } = getEffectiveScaledPaper(PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter, resume.designSettings);
       const scale = Math.max(0.2, sheet.getBoundingClientRect().width / paper.widthPx);
-      const startW = Math.round(el.getBoundingClientRect().width / scale);
+      const sheetRect = sheet.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const elLeftOnSheet = Math.max(SHEET_SAFE_EDGE_PX, Math.round((elRect.left - sheetRect.left) / scale));
+      const maxAllowedW = Math.max(130, paper.widthPx - SHEET_SAFE_EDGE_PX - elLeftOnSheet);
+      const startW = Math.round(elRect.width / scale);
       const startClientX = event.clientX;
       let curW = startW;
 
@@ -13377,7 +13911,7 @@ ALWAYS respond strictly in valid JSON:
 
       const onPointerMove = (mv) => {
         const dx = (mv.clientX - startClientX) / scale;
-        curW = Math.round(Math.min(paper.widthPx - 36, Math.max(130, startW + dx)));
+        curW = Math.round(Math.min(maxAllowedW, Math.max(130, startW + dx)));
         el.style.width = `${curW}px`;
         el.style.maxWidth = 'none';
         el.style.boxSizing = 'border-box';
@@ -13447,7 +13981,7 @@ ALWAYS respond strictly in valid JSON:
       if (!sheet) return;
 
       const moveId = wrapper.getAttribute('data-photo-move-id') || 'p0::photo';
-      const paper = PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter;
+      const { effPaper: paper } = getEffectiveScaledPaper(PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter, resume.designSettings);
       const scale = Math.max(0.2, sheet.getBoundingClientRect().width / paper.widthPx);
       const existing = resume.sectionPositions?.[tpl]?.[moveId] || {};
       const startOffX = Number(existing.x) || 0;
@@ -13466,10 +14000,21 @@ ALWAYS respond strictly in valid JSON:
       };
       window.addEventListener('touchmove', preventTouchScroll, { passive: false });
 
+      const shRect0 = sheet.getBoundingClientRect();
+      const phRect0 = wrapper.getBoundingClientRect();
+      const phLeft0 = (phRect0.left - shRect0.left) / scale;
+      const phTop0 = (phRect0.top - shRect0.top) / scale;
+      const phW = phRect0.width / scale;
+      const phH = phRect0.height / scale;
+
       const onPointerMove = (mv) => {
         if (pointerId !== undefined && mv.pointerId !== pointerId) return;
-        curX = Math.round(startOffX + (mv.clientX - startClientX) / scale);
-        curY = Math.round(startOffY + (mv.clientY - startClientY) / scale);
+        let nextLeft = phLeft0 + (mv.clientX - startClientX) / scale;
+        let nextTop = phTop0 + (mv.clientY - startClientY) / scale;
+        nextLeft = Math.max(SHEET_SAFE_EDGE_PX, Math.min(paper.widthPx - SHEET_SAFE_EDGE_PX - phW, nextLeft));
+        nextTop = Math.max(SHEET_SAFE_EDGE_PX, Math.min(paper.heightPx - SHEET_SAFE_EDGE_PX - phH, nextTop));
+        curX = Math.round(startOffX + (nextLeft - phLeft0));
+        curY = Math.round(startOffY + (nextTop - phTop0));
         wrapper.style.left = `${curX}px`;
         wrapper.style.top = `${curY}px`;
       };
@@ -13523,6 +14068,7 @@ ALWAYS respond strictly in valid JSON:
           z: existing.z || 22,
         };
       }
+      clampAllMovedSectionsInsidePaper(resume);
       await persistResume(resume);
       renderPreviewPanel();
     }
