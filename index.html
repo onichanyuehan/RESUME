@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RESUMATE AI v36 — Edge-Aware Exact Binary-Search 1-Page Fit</title>
+  <title>RESUMATE AI v40 — Pixel-Precision AI Studio, Tool Calling &amp; Split View</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -91,6 +91,66 @@
     }
     .resume-design-surface .resume-item-block {
       padding-bottom: var(--resume-item-gap, 10px);
+    }
+    /* Unified CSS variable inheritance across ALL 59 templates so line-height & per-section overrides always respond */
+    .resume-design-surface p,
+    .resume-design-surface li {
+      line-height: var(--sec-line-height, var(--resume-line-height, 1.48));
+    }
+    .movable-section-box[data-has-sec-style="1"] {
+      font-size: var(--sec-font-size, inherit) !important;
+      line-height: var(--sec-line-height, inherit) !important;
+      letter-spacing: var(--sec-letter-spacing, inherit) !important;
+    }
+    .movable-section-box[data-has-sec-style="1"] p,
+    .movable-section-box[data-has-sec-style="1"] li,
+    .movable-section-box[data-has-sec-style="1"] .resume-body-text {
+      font-size: var(--sec-font-size, inherit) !important;
+      line-height: var(--sec-line-height, inherit) !important;
+      letter-spacing: var(--sec-letter-spacing, inherit) !important;
+      color: var(--sec-text-color, inherit) !important;
+    }
+    .movable-section-box[data-has-sec-item-gap="1"] li,
+    .movable-section-box[data-has-sec-item-gap="1"] .resume-item-block {
+      margin-bottom: var(--sec-item-gap, 3px) !important;
+      padding-bottom: var(--sec-item-gap, 3px) !important;
+    }
+    /* On-canvas toggleable Pixel-per-Pixel Grid Overlay (strictly hidden on Export/Print!) */
+    .pixel-coord-grid-overlay {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 42;
+    }
+    .exporting-pdf .pixel-coord-grid-overlay,
+    #print-export-container .pixel-coord-grid-overlay {
+      display: none !important;
+    }
+    /* Inline Word-Level Diff Highlighting */
+    .diff-word-del {
+      background: rgba(239, 68, 68, 0.18);
+      color: #991b1b;
+      text-decoration: line-through;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+    .dark .diff-word-del {
+      background: rgba(239, 68, 68, 0.28);
+      color: #fca5a5;
+    }
+    .diff-word-add {
+      background: rgba(16, 185, 129, 0.20);
+      color: #065f46;
+      font-weight: 600;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+    .dark .diff-word-add {
+      background: rgba(16, 185, 129, 0.28);
+      color: #6ee7b7;
     }
     .resume-design-surface .resume-accent-text { color: var(--resume-accent, #6d28d9); }
     .resume-design-surface .resume-accent-border { border-color: var(--resume-accent, #6d28d9); }
@@ -1107,11 +1167,15 @@
           </button>
         </div>
 
-        <!-- Primary Workspace Switcher (Assistant Chat | Live Preview | Templates) -->
-        <div role="tablist" aria-label="Primary Workspace" class="inline-flex w-full max-w-[440px] rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1">
+        <!-- Primary Workspace Switcher (Chat | Split View | Live Preview | Templates) -->
+        <div role="tablist" aria-label="Primary Workspace" class="inline-flex w-full max-w-[530px] rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1">
           <button type="button" id="tab-btn-chat" role="tab" aria-selected="false" onclick="switchTab('chat')" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
             <i data-lucide="message-square" class="h-4 w-4 shrink-0"></i>
             <span class="truncate">Chat</span>
+          </button>
+          <button type="button" id="tab-btn-split" role="tab" aria-selected="false" onclick="switchTab('split')" title="Side-by-side Live Preview + AI Chat" class="hidden md:inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 px-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+            <i data-lucide="columns-2" class="h-4 w-4 shrink-0"></i>
+            <span class="truncate">Split View</span>
           </button>
           <button type="button" id="tab-btn-preview" role="tab" aria-selected="true" onclick="switchTab('preview')" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-2 text-xs sm:text-sm font-medium bg-white dark:bg-slate-950 text-purple-700 dark:text-purple-400 shadow-sm transition">
             <i data-lucide="file-text" class="h-4 w-4 shrink-0"></i>
@@ -1127,7 +1191,7 @@
         <div class="flex items-center gap-2 min-w-0 shrink-0">
           <div class="h-8 w-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-bold shadow-sm shrink-0">R</div>
           <span class="hidden sm:inline font-semibold tracking-tight text-slate-950 dark:text-white truncate">RESUMATE AI</span>
-          <span class="rounded-md bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 shrink-0">v36</span>
+          <span class="rounded-md bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 shrink-0">v40</span>
         </div>
       </header>
 
@@ -1140,10 +1204,10 @@
         </div>
       </div>
 
-      <!-- Main Workspace Container: 100% Pure Chat or 100% Pure Live Preview -->
-      <main class="relative flex-1 overflow-hidden">
+      <!-- Main Workspace Container: Chat, Live Preview, Split View, or Templates -->
+      <main id="workspace-main" class="relative flex flex-1 overflow-hidden">
         <!-- TAB 1: ASSISTANT CHAT -->
-        <section id="panel-chat" class="hidden h-full flex-col bg-white dark:bg-slate-950">
+        <section id="panel-chat" class="hidden h-full w-full flex-col bg-white dark:bg-slate-950">
           <div id="chat-scroll-area" class="flex-1 overflow-y-auto px-4 py-6 space-y-5 max-w-3xl w-full mx-auto"></div>
 
           <!-- Sticky Bottom Composer -->
@@ -1165,6 +1229,15 @@
                   <span id="chat-memory-label">Full Memory (0)</span>
                 </span>
                 <button type="button" onclick="clearCurrentConversation()" class="inline-flex items-center gap-1 rounded-full border border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/30 px-3 py-1 text-xs font-medium text-red-700 dark:text-red-300 hover:bg-red-100/70 transition"><i data-lucide="trash-2" class="h-3 w-3"></i><span>Clear chat</span></button>
+              </div>
+              <!-- Click-to-Target Active Canvas Section Chip -->
+              <div id="chat-selected-section-bar" class="hidden items-center justify-between rounded-xl border border-fuchsia-200 dark:border-fuchsia-800 bg-fuchsia-50/80 dark:bg-fuchsia-950/40 px-3 py-1.5 text-[11px] text-fuchsia-900 dark:text-fuchsia-200">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="inline-block h-2 w-2 rounded-full bg-fuchsia-500 shrink-0"></span>
+                  <span class="font-semibold shrink-0">Targeting section:</span>
+                  <span id="chat-selected-section-label" class="truncate font-mono text-[10.5px]"></span>
+                </div>
+                <button type="button" onclick="clearSelectedMovableSection()" class="ml-2 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-fuchsia-800 dark:text-fuchsia-200 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900" title="Clear section target">Clear ×</button>
               </div>
               <!-- Direct AI Attachment Chip -->
               <div id="chat-attachment-bar" class="hidden items-center justify-between rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/80 dark:bg-purple-950/40 px-3 py-1.5 text-xs text-purple-900 dark:text-purple-200">
@@ -1191,12 +1264,12 @@
         </section>
 
         <!-- TAB 2: LIVE PREVIEW (100% Pure Physical WYSIWYG Paper Canvas) -->
-        <section id="panel-preview" class="flex h-full flex-col bg-slate-200/80 dark:bg-slate-900">
+        <section id="panel-preview" class="flex h-full w-full flex-col bg-slate-200/80 dark:bg-slate-900">
           <div id="preview-canvas-area" onpointerdown="handleCanvasBackdropPointerDown(event)" class="flex-1 overflow-auto p-4 sm:p-8 bg-slate-200/85 dark:bg-slate-900"></div>
         </section>
 
         <!-- TAB 3: DESIGNATED TEMPLATE GALLERY PAGE (Compact 4-Up Grid Sample View of All 59 Templates) -->
-        <section id="panel-templates" class="hidden h-full flex-col bg-slate-100/90 dark:bg-slate-950">
+        <section id="panel-templates" class="hidden h-full w-full flex-col bg-slate-100/90 dark:bg-slate-950">
           <!-- Compact Sticky Gallery Header: Search, Sample vs My Resume Toggle & Collection Filter Pills -->
           <div class="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/95 px-3 sm:px-5 py-2.5 space-y-2">
             <div class="max-w-[960px] mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-2">
@@ -1579,6 +1652,8 @@
       moveSectionsMode: false,
       selectedMoveId: null,
       aiPreviewVision: true,
+      showPixelGrid: false,
+      useNativeAiTools: true,
       sessionPreviewThumbs: {},
       zoom: 100,
       rememberOnDevice: initialRememberDevice,
@@ -2563,9 +2638,145 @@
       },
     };
 
-    function sanitizeDesignPatch(patch) {
+    const NAMED_DESIGN_COLORS = {
+      black: '#0f172a', white: '#ffffff', ivory: '#faf8f4', cream: '#f7f3eb', parchment: '#f4ede3',
+      navy: '#0f1f3d', midnight: '#0d1b33', blue: '#1d4ed8', royal: '#1e3a8a', cobalt: '#2563eb', sky: '#0284c7', cyan: '#0891b2', teal: '#0d9488',
+      emerald: '#047857', forest: '#144939', green: '#15803d', sage: '#6a8272', olive: '#556b2f',
+      gold: '#b58d46', champagne: '#c69e52', amber: '#d97706', bronze: '#8d7761', terracotta: '#c2542d', coral: '#e11d48',
+      red: '#b91c1c', crimson: '#9f1239', burgundy: '#7f1d1d', maroon: '#6b1d2f', rose: '#be185d', pink: '#db2777',
+      purple: '#6d28d9', violet: '#7c3aed', indigo: '#4338ca', plum: '#581c87', lavender: '#7e5bef',
+      charcoal: '#1e293b', slate: '#334155', gray: '#475569', grey: '#475569', taupe: '#6b6258', espresso: '#26211e',
+    };
+
+    function parseLooseNumeric(rawVal) {
+      if (typeof rawVal === 'number') return Number.isFinite(rawVal) ? rawVal : NaN;
+      if (typeof rawVal !== 'string') return NaN;
+      const s = rawVal.trim().toLowerCase();
+      if (!s) return NaN;
+      const m = s.match(/^[+-]?\d+(?:\.\d+)?/);
+      if (!m) return NaN;
+      const num = Number(m[0]);
+      if (!Number.isFinite(num)) return NaN;
+      if (s.endsWith('pt')) return Math.round(num * 1.333 * 100) / 100;
+      return num;
+    }
+
+    function normalizeHexColor(rawVal) {
+      if (typeof rawVal !== 'string') return null;
+      const s = rawVal.trim().toLowerCase();
+      if (!s) return null;
+      if (/^#[0-9a-f]{6}$/i.test(s)) return s;
+      if (/^#[0-9a-f]{3}$/i.test(s)) {
+        return `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`;
+      }
+      if (/^[0-9a-f]{6}$/i.test(s)) return `#${s}`;
+      const rgbMatch = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+      if (rgbMatch) {
+        const toHex = (n) => Math.max(0, Math.min(255, Number(n))).toString(16).padStart(2, '0');
+        return `#${toHex(rgbMatch[1])}${toHex(rgbMatch[2])}${toHex(rgbMatch[3])}`;
+      }
+      if (NAMED_DESIGN_COLORS[s]) return NAMED_DESIGN_COLORS[s];
+      for (const [name, hex] of Object.entries(NAMED_DESIGN_COLORS)) {
+        if (s.includes(name)) return hex;
+      }
+      return null;
+    }
+
+    function resolveFuzzyTemplateId(rawTpl) {
+      if (!rawTpl || typeof rawTpl !== 'string') return null;
+      const clean = rawTpl.trim().toLowerCase();
+      if (!clean) return null;
+      if (ALLOWED_TEMPLATES.includes(clean)) return clean;
+      const slug = clean.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      if (ALLOWED_TEMPLATES.includes(slug)) return slug;
+      // Match by catalog name or number prefix (e.g. "Executive Boardroom", "42", "Regal Crest")
+      const exactName = TEMPLATE_CATALOG.find(
+        (t) => t.name.toLowerCase() === clean || t.name.toLowerCase().includes(clean) || clean.includes(t.id)
+      );
+      if (exactName) return exactName.id;
+      const numMatch = clean.match(/\b(\d{2})\b/);
+      if (numMatch) {
+        const byNum = TEMPLATE_CATALOG.find((t) => t.name.startsWith(`${numMatch[1]} `));
+        if (byNum) return byNum.id;
+      }
+      return null;
+    }
+
+    function resolveFuzzyPaperSize(rawPaper) {
+      if (!rawPaper || typeof rawPaper !== 'string') return null;
+      const s = rawPaper.trim().toLowerCase();
+      if (PAPER_SIZES[s]) return s;
+      if (/legal|long|folio|13\b|8\.5\s*[x×]\s*13/.test(s)) return 'legal';
+      if (/letter|short|11\b|8\.5\s*[x×]\s*11/.test(s)) return 'letter';
+      return null;
+    }
+
+    function sanitizeDesignPatch(rawPatch) {
       const clean = {};
-      if (!patch || typeof patch !== 'object') return clean;
+      if (!rawPatch || typeof rawPatch !== 'object') return clean;
+      const parsedPatch = parseFlexiblePayload(rawPatch);
+      if (!parsedPatch || typeof parsedPatch !== 'object' || Array.isArray(parsedPatch)) return clean;
+
+      // Normalize snake_case & common synonym keys into canonical DEFAULT_DESIGN_SETTINGS keys
+      const keyAliases = {
+        font: 'fontFamily', font_family: 'fontFamily', bodyFont: 'fontFamily', body_font: 'fontFamily',
+        heading_font: 'headingFontFamily', headingFont: 'headingFontFamily', heading_font_family: 'headingFontFamily',
+        font_size: 'fontSize', bodyFontSize: 'fontSize', body_font_size: 'fontSize', textSize: 'fontSize',
+        name_size: 'nameSize', titleSize: 'nameSize', heading_size: 'headingSize',
+        line_height: 'lineHeight', leading: 'lineHeight',
+        section_gap: 'sectionGap', sectionSpacing: 'sectionGap', section_spacing: 'sectionGap',
+        item_gap: 'itemGap', itemSpacing: 'itemGap', item_spacing: 'itemGap',
+        letter_spacing: 'letterSpacing', tracking: 'letterSpacing',
+        accent: 'accentColor', accent_color: 'accentColor', primaryColor: 'accentColor', primary_color: 'accentColor', color: 'accentColor',
+        text_color: 'textColor', bodyColor: 'textColor',
+        muted_color: 'mutedColor', secondaryColor: 'mutedColor',
+        header_bg: 'headerBgColor', header_bg_color: 'headerBgColor', headerBackground: 'headerBgColor', bannerColor: 'headerBgColor', railColor: 'headerBgColor',
+        header_text: 'headerTextColor', header_text_color: 'headerTextColor',
+        page_bg: 'pageBgColor', page_bg_color: 'pageBgColor', backgroundColor: 'pageBgColor', background: 'pageBgColor', paperColor: 'pageBgColor',
+        margin_top: 'marginTop', margin_bottom: 'marginBottom', margin_left: 'marginLeft', margin_right: 'marginRight',
+        show_photo: 'showPhoto', hidePhoto: '_hidePhoto',
+        photo_size: 'photoSize', photo_size_in: 'photoSizeIn', photoSizeInches: 'photoSizeIn',
+        photo_shape: 'photoShape', photo_position: 'photoPosition',
+        header_align: 'headerAlign', headerAlignment: 'headerAlign',
+        heading_style: 'headingStyle', divider_style: 'dividerStyle', bullet_style: 'bulletStyle', icon_style: 'iconStyle',
+        sidebar_width: 'sidebarWidth', railWidth: 'sidebarWidth',
+        content_scale: 'contentScale', scale: 'contentScale', pageScale: 'contentScale', fitScale: 'contentScale',
+      };
+
+      const patch = {};
+      // Handle uniform `margin` / `margins` shorthand first so per-side overrides still win
+      const rawMargin = parsedPatch.margin ?? parsedPatch.margins;
+      if (rawMargin !== undefined && rawMargin !== null) {
+        if (typeof rawMargin === 'object') {
+          const mt = parseLooseNumeric(rawMargin.top);
+          const mb = parseLooseNumeric(rawMargin.bottom);
+          const ml = parseLooseNumeric(rawMargin.left);
+          const mr = parseLooseNumeric(rawMargin.right);
+          if (Number.isFinite(mt)) patch.marginTop = mt;
+          if (Number.isFinite(mb)) patch.marginBottom = mb;
+          if (Number.isFinite(ml)) patch.marginLeft = ml;
+          if (Number.isFinite(mr)) patch.marginRight = mr;
+        } else {
+          const mv = parseLooseNumeric(rawMargin);
+          if (Number.isFinite(mv)) {
+            patch.marginTop = mv;
+            patch.marginBottom = mv;
+            patch.marginLeft = mv;
+            patch.marginRight = mv;
+          }
+        }
+      }
+
+      Object.entries(parsedPatch).forEach(([k, v]) => {
+        if (v === null || v === undefined || v === '') return;
+        const mapped = keyAliases[k] || k;
+        if (mapped === '_hidePhoto') {
+          patch.showPhoto = !(v === true || String(v).toLowerCase() === 'true');
+        } else {
+          patch[mapped] = v;
+        }
+      });
+
       const colorKeys = ['accentColor', 'textColor', 'mutedColor', 'headerBgColor', 'headerTextColor', 'pageBgColor'];
       const enumRules = {
         photoShape: ['circle', 'rounded', 'square'],
@@ -2576,42 +2787,146 @@
         bulletStyle: ['disc', 'square', 'dash', 'none'],
         iconStyle: ['all', 'contact', 'none'],
       };
+
       // Support physical inches directly via photoSizeIn (e.g. 2.0 => 192px)
       if (patch.photoSizeIn !== undefined) {
-        const inches = Number(patch.photoSizeIn);
+        const inches = parseLooseNumeric(patch.photoSizeIn);
         if (Number.isFinite(inches)) {
           const clampedIn = Math.min(3.0, Math.max(0.5, inches));
           clean.photoSize = Math.round(clampedIn * CSS_DPI);
         }
       }
+
       for (const [key, rawVal] of Object.entries(patch)) {
         if (!Object.prototype.hasOwnProperty.call(DEFAULT_DESIGN_SETTINGS, key)) continue;
         if (DESIGN_NUMERIC_RANGES[key]) {
-          const num = Number(rawVal);
+          let num = parseLooseNumeric(rawVal);
           if (!Number.isFinite(num)) continue;
+          // Auto-convert percentage `contentScale` (e.g. 88 or "88%" -> 0.88)
+          if (key === 'contentScale' && num > 1.5 && num <= 100) {
+            num = num / 100;
+          }
+          // Auto-convert px margins if Gemini accidentally gives px (e.g. 36px -> 0.375in)
+          if (key.startsWith('margin') && num > 3 && num <= 150) {
+            num = num / CSS_DPI;
+          }
+          // Auto-convert inch photoSize if Gemini gives 1.5 instead of 144px
+          if (key === 'photoSize' && num > 0.4 && num <= 3.5) {
+            num = Math.round(num * CSS_DPI);
+          }
           const [min, max] = DESIGN_NUMERIC_RANGES[key];
           clean[key] = Math.round(Math.min(max, Math.max(min, num)) * 100) / 100;
         } else if (key === 'fontFamily') {
-          const match = ALLOWED_FONTS.find((f) => f.toLowerCase() === String(rawVal || '').trim().toLowerCase());
+          const q = String(rawVal || '').trim().toLowerCase();
+          const match = ALLOWED_FONTS.find((f) => f.toLowerCase() === q) || ALLOWED_FONTS.find((f) => f.toLowerCase().includes(q) || q.includes(f.toLowerCase()));
           if (match) clean[key] = match;
         } else if (key === 'headingFontFamily') {
-          if (String(rawVal || '').trim().toLowerCase() === 'inherit') {
+          const q = String(rawVal || '').trim().toLowerCase();
+          if (q === 'inherit' || q === 'same') {
             clean[key] = 'inherit';
           } else {
-            const match = ALLOWED_FONTS.find((f) => f.toLowerCase() === String(rawVal || '').trim().toLowerCase());
+            const match = ALLOWED_FONTS.find((f) => f.toLowerCase() === q) || ALLOWED_FONTS.find((f) => f.toLowerCase().includes(q) || q.includes(f.toLowerCase()));
             if (match) clean[key] = match;
           }
         } else if (colorKeys.includes(key)) {
-          const hex = String(rawVal || '').trim();
-          if (/^#[0-9a-f]{6}$/i.test(hex)) clean[key] = hex;
+          const hex = normalizeHexColor(rawVal);
+          if (hex) clean[key] = hex;
         } else if (enumRules[key]) {
           const val = String(rawVal || '').trim().toLowerCase();
           if (enumRules[key].includes(val)) clean[key] = val;
         } else if (key === 'showPhoto') {
           if (typeof rawVal === 'boolean') clean[key] = rawVal;
+          else if (String(rawVal).toLowerCase() === 'true') clean[key] = true;
+          else if (String(rawVal).toLowerCase() === 'false') clean[key] = false;
         }
       }
       return clean;
+    }
+
+    // Extract & normalize ALL visual/layout/document actions from ANY Gemini response shape
+    function extractNormalizedVisualActions(aiResult) {
+      if (!aiResult || typeof aiResult !== 'object') {
+        return { docActions: {}, requestedTemplate: null, cleanDesignPatch: {}, aiSectionAdj: [] };
+      }
+      const rawDoc = parseFlexiblePayload(
+        aiResult.documentActions ?? aiResult.document_actions ?? aiResult.layoutActions ?? aiResult.layout_actions ?? aiResult.actions ?? {}
+      );
+      const docActions = rawDoc && typeof rawDoc === 'object' && !Array.isArray(rawDoc) ? { ...rawDoc } : {};
+
+      // Normalize documentActions key aliases
+      if (docActions.fit_to_one_page !== undefined && docActions.fitToOnePage === undefined) docActions.fitToOnePage = docActions.fit_to_one_page;
+      if (docActions.fitOnePage !== undefined && docActions.fitToOnePage === undefined) docActions.fitToOnePage = docActions.fitOnePage;
+      if (aiResult.fitToOnePage === true || aiResult.fit_to_one_page === true) docActions.fitToOnePage = true;
+
+      if (docActions.reset_section_positions !== undefined && docActions.resetSectionPositions === undefined) docActions.resetSectionPositions = docActions.reset_section_positions;
+      if (docActions.resetPositions !== undefined && docActions.resetSectionPositions === undefined) docActions.resetSectionPositions = docActions.resetPositions;
+      if (docActions.resetLayout !== undefined && docActions.resetSectionPositions === undefined) docActions.resetSectionPositions = docActions.resetLayout;
+      if (aiResult.resetSectionPositions === true) docActions.resetSectionPositions = true;
+
+      if (docActions.reset_design !== undefined && docActions.resetDesign === undefined) docActions.resetDesign = docActions.reset_design;
+      if (docActions.paper_size !== undefined && docActions.paperSize === undefined) docActions.paperSize = docActions.paper_size;
+      if (aiResult.paperSize !== undefined && docActions.paperSize === undefined) docActions.paperSize = aiResult.paperSize;
+      if (docActions.paperSize) {
+        const resolvedPaper = resolveFuzzyPaperSize(String(docActions.paperSize));
+        if (resolvedPaper) docActions.paperSize = resolvedPaper;
+      }
+
+      if (docActions.section_order !== undefined && docActions.sectionOrder === undefined) docActions.sectionOrder = docActions.section_order;
+      if (aiResult.sectionOrder !== undefined && docActions.sectionOrder === undefined) docActions.sectionOrder = aiResult.sectionOrder;
+
+      if (docActions.hidden_sections !== undefined && docActions.hiddenSections === undefined) docActions.hiddenSections = docActions.hidden_sections;
+      if (aiResult.hiddenSections !== undefined && docActions.hiddenSections === undefined) docActions.hiddenSections = aiResult.hiddenSections;
+
+      const rawTpl = aiResult.templateId ?? aiResult.template_id ?? aiResult.template ?? docActions.templateId ?? docActions.template_id ?? docActions.template;
+      const requestedTemplate = resolveFuzzyTemplateId(rawTpl);
+
+      const rawDesign =
+        aiResult.designSettings ??
+        aiResult.design_settings ??
+        aiResult.design ??
+        aiResult.style ??
+        aiResult.styling ??
+        aiResult.layoutSettings ??
+        docActions.designSettings ??
+        docActions.design_settings ??
+        null;
+      const cleanDesignPatch = sanitizeDesignPatch(rawDesign);
+
+      // Collect sectionAdjustments from ANY alias (array OR object-map keyed by moveId!)
+      let rawAdj =
+        docActions.sectionAdjustments ??
+        docActions.section_adjustments ??
+        docActions.sectionPositions ??
+        docActions.section_positions ??
+        docActions.moveSections ??
+        docActions.moves ??
+        docActions.layoutAdjustments ??
+        aiResult.sectionAdjustments ??
+        aiResult.section_adjustments ??
+        aiResult.sectionPositions ??
+        aiResult.section_positions ??
+        aiResult.moveSections ??
+        aiResult.moves ??
+        null;
+
+      rawAdj = parseFlexiblePayload(rawAdj);
+      let aiSectionAdj = [];
+      if (Array.isArray(rawAdj)) {
+        aiSectionAdj = rawAdj.filter((item) => item && typeof item === 'object');
+      } else if (rawAdj && typeof rawAdj === 'object') {
+        // Object map: { "p0::skills": { x: 40, y: 500, w: 300 } } OR single adjustment object { moveId: "...", ... }
+        if (rawAdj.moveId || rawAdj.sectionId || rawAdj.section || rawAdj.target || rawAdj.label) {
+          aiSectionAdj = [rawAdj];
+        } else {
+          Object.entries(rawAdj).forEach(([k, v]) => {
+            if (v && typeof v === 'object') {
+              aiSectionAdj.push({ moveId: k, ...v });
+            }
+          });
+        }
+      }
+
+      return { docActions, requestedTemplate, cleanDesignPatch, aiSectionAdj };
     }
 
     function applyTemplateDesignPreset(resume, templateId, resetPhoto = false) {
@@ -2743,6 +3058,12 @@
         }
         if (!resume.sectionPositions || typeof resume.sectionPositions !== 'object') {
           resume.sectionPositions = {};
+        }
+        if (!resume.sectionStyles || typeof resume.sectionStyles !== 'object') {
+          resume.sectionStyles = {};
+        }
+        if (!resume.sectionTitles || typeof resume.sectionTitles !== 'object') {
+          resume.sectionTitles = {};
         }
       }
       return resume;
@@ -2940,6 +3261,49 @@
             });
           });
 
+          // Also report Profile Photo wrapper (`p{idx}::photo`) in sectionsLayout so AI can move/resize it directly!
+          const photoEl = sheet.querySelector('[data-photo-wrapper="1"]');
+          if (photoEl) {
+            const pr = photoEl.getBoundingClientRect();
+            if (pr.width > 4 && pr.height > 4) {
+              const pMoveId = photoEl.getAttribute('data-photo-move-id') || `p${pIdx}::photo`;
+              sectionsLayout.push({
+                moveId: pMoveId,
+                label: 'Profile Photo',
+                pageIndex: pIdx,
+                pageNumber: pIdx + 1,
+                x: Math.round((pr.left - sheetRect.left) / coordScale),
+                y: Math.round((pr.top - sheetRect.top) / coordScale),
+                width: Math.round(pr.width / coordScale),
+                height: Math.round(pr.height / coordScale),
+                right: Math.round((pr.right - sheetRect.left) / coordScale),
+                bottom: Math.round((pr.bottom - sheetRect.top) / coordScale),
+                isMoved: Boolean(savedMap[pMoveId]),
+              });
+            }
+          }
+
+          // Measure granular sub-element pixel coordinates (headings, jobs, bullets) for 1px precision AI targeting
+          const elemPixels = [];
+          sheet.querySelectorAll('.movable-section-box[data-move-id] h1, .movable-section-box[data-move-id] h2, .movable-section-box[data-move-id] h3, .movable-section-box[data-move-id] .resume-section-heading').forEach((el) => {
+            if (elemPixels.length >= 24) return;
+            const r = el.getBoundingClientRect();
+            if (r.width < 4 || r.height < 4) return;
+            const parentBox = el.closest('.movable-section-box[data-move-id]');
+            elemPixels.push({
+              moveId: parentBox?.getAttribute('data-move-id') || '',
+              tag: el.tagName.toLowerCase(),
+              text: String(el.textContent || '').trim().slice(0, 40),
+              x: Math.round((r.left - sheetRect.left) / coordScale),
+              y: Math.round((r.top - sheetRect.top) / coordScale),
+              w: Math.round(r.width / coordScale),
+              h: Math.round(r.height / coordScale),
+            });
+          });
+          if (pIdx === 0 && elemPixels.length > 0) {
+            sectionsLayout._page1Elements = elemPixels;
+          }
+
           // Measure TRUE unclamped bounds across all visible content nodes (detects clipped sidebars or overflowing text!)
           let sheetMaxBot = 0;
           let sheetMaxRight = 0;
@@ -3003,6 +3367,35 @@
         }
       } catch {}
 
+      // Compute AABB section-to-section overlaps (detects accidental collisions when moving sections!)
+      const sectionOverlaps = [];
+      for (let a = 0; a < sectionsLayout.length; a += 1) {
+        const sa = sectionsLayout[a];
+        if (sa.moveId.endsWith('::photo')) continue;
+        for (let b = a + 1; b < sectionsLayout.length; b += 1) {
+          const sb = sectionsLayout[b];
+          if (sb.pageIndex !== sa.pageIndex || sb.moveId.endsWith('::photo')) continue;
+          const ox = Math.min(sa.right, sb.right) - Math.max(sa.x, sb.x);
+          const oy = Math.min(sa.bottom, sb.bottom) - Math.max(sa.y, sb.y);
+          if (ox >= 8 && oy >= 8 && (sa.isMoved || sb.isMoved)) {
+            sectionOverlaps.push({
+              pageNumber: sa.pageNumber,
+              a: sa.moveId,
+              b: sb.moveId,
+              overlapWidthPx: Math.round(ox),
+              overlapHeightPx: Math.round(oy),
+            });
+          }
+        }
+      }
+
+      sectionsLayout.forEach((s) => {
+        s.centerX = Math.round(s.x + s.width / 2);
+        s.centerY = Math.round(s.y + s.height / 2);
+        const stMap = resume?.sectionStyles?.[tpl]?.[s.moveId];
+        if (stMap && Object.keys(stMap).length > 0) s.customStyle = stMap;
+      });
+
       const movedCount = Object.keys(savedMap).length;
       const trulyFitsOnePage = pageCount <= 1 && cleanPageCount <= 1 && page1BottomClippedPx <= 2 && totalEdgeOverflowPx <= 2;
 
@@ -3014,6 +3407,7 @@
         cleanPagesHtml,
         sectionsLayout,
         page1OpenPockets,
+        sectionOverlaps,
         telemetry: {
           renderedPageCount: pageCount,
           cleanExportPageCount: cleanPageCount,
@@ -3023,14 +3417,17 @@
           page1BottomClippedPx,
           totalEdgeOverflowPx,
           edgeViolations,
+          sectionOverlaps,
           paperSize: paper.id,
           paperDimensions: `${paper.widthIn}" × ${paper.heightIn}" (${paper.widthPx}×${paper.heightPx}px)`,
           effectiveCoordSpace: `${effPaper.widthPx}×${effPaper.heightPx}px (contentScale ${Math.round(contentScale * 100)}%)`,
+          pixelCoordinateOrigin: 'top-left (0,0) in effective sheet pixels; x goes right, y goes down',
           safePaperBounds: { minX: SHEET_SAFE_EDGE_PX, minY: SHEET_SAFE_EDGE_PX, maxX: effPaper.widthPx - SHEET_SAFE_EDGE_PX, maxY: effPaper.heightPx - SHEET_SAFE_EDGE_PX },
           lastPageOccupiedPx: lastPageContentPx,
           lastPageFillPercent: lastPageFillPct,
           movedSectionCount: movedCount,
           sectionsLayout,
+          elementPixels: sectionsLayout._page1Elements || [],
           page1OpenPockets,
           currentTypographyAndMargins: {
             fontSize: d.fontSize,
@@ -3110,6 +3507,55 @@
       });
 
       return fixedCount;
+    }
+
+    // Automatic AABB Collision Resolver: nudges moved sections apart if two blocks overlap on the same page
+    function resolveMovedSectionCollisions(resume) {
+      const tpl = ALLOWED_TEMPLATES.includes(resume?.templateId) ? resume.templateId : 'modern-minimal';
+      const map = resume?.sectionPositions?.[tpl];
+      if (!map || Object.keys(map).length === 0) return 0;
+
+      let resolved = 0;
+      for (let pass = 0; pass < 3; pass += 1) {
+        const snap = measureResumeLayoutTelemetry(resume, { editable: !state.printPreviewMode });
+        const overlaps = snap.sectionOverlaps || [];
+        if (overlaps.length === 0) break;
+        const { effPaper, sectionsLayout } = snap;
+        const pad = SHEET_SAFE_EDGE_PX;
+        let movedThisPass = false;
+
+        overlaps.forEach((ov) => {
+          const sa = sectionsLayout.find((s) => s.moveId === ov.a);
+          const sb = sectionsLayout.find((s) => s.moveId === ov.b);
+          if (!sa || !sb) return;
+          const mover = sb.isMoved && !sa.isMoved ? sb : sa.isMoved && !sb.isMoved ? sa : sb.y >= sa.y ? sb : sa;
+          const anchor = mover === sa ? sb : sa;
+          const saved = map[mover.moveId];
+          if (!saved) return;
+
+          const pushDownY = anchor.bottom + 10;
+          const pushUpY = anchor.y - mover.height - 10;
+          let targetY = null;
+          if (pushDownY + mover.height <= effPaper.heightPx - pad) targetY = pushDownY;
+          else if (pushUpY >= pad) targetY = pushUpY;
+
+          if (targetY !== null) {
+            const dy = Math.round(targetY - mover.y);
+            if (Math.abs(dy) >= 2) {
+              if (Number.isFinite(Number(saved.absY))) {
+                saved.absY = Math.round(Math.max(pad, Math.min(effPaper.heightPx - pad - mover.height, Number(saved.absY) + dy)));
+              } else {
+                saved.y = Math.round((Number(saved.y) || 0) + dy);
+              }
+              movedThisPass = true;
+              resolved += 1;
+            }
+          }
+        });
+        if (!movedThisPass) break;
+      }
+      if (resolved > 0) clampAllMovedSectionsInsidePaper(resume);
+      return resolved;
     }
 
     // Spatial Cross-Page Packer: attempts to move remaining Page 2+ overflow sections into
@@ -3568,7 +4014,102 @@
     // Bulletproof 3-Tier Live Preview Screenshot Capture for Gemini Vision:
     // Captures the ACTUAL live rendered pages on-screen so Chromium ALWAYS paints them cleanly,
     // with font-stripped retry & structural canvas fallback!
-    async function captureLivePreviewImagesForAi(resume, telemetryBundle) {
+    // Stamp a crisp 50px/25px Pixel Coordinate Ruler & Labeled Section Bounding-Box Overlay
+    // directly onto Gemini's vision canvas so the AI reads exact (x, y, w, h) pixels straight off the image!
+    function annotateVisionCanvasWithPixelCoords(srcCanvas, effPaper, sectionsOnPage, selectedMoveId = null) {
+      const c = document.createElement('canvas');
+      c.width = srcCanvas.width;
+      c.height = srcCanvas.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(srcCanvas, 0, 0);
+
+      const sx = c.width / effPaper.widthPx;
+      const sy = c.height / effPaper.heightPx;
+
+      ctx.save();
+      for (let gx = 0; gx <= effPaper.widthPx; gx += 25) {
+        const px = Math.round(gx * sx) + 0.5;
+        const isMajor = gx % 50 === 0;
+        if (isMajor && gx > 0 && gx < effPaper.widthPx) {
+          ctx.strokeStyle = 'rgba(124, 58, 237, 0.16)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(px, 0);
+          ctx.lineTo(px, c.height);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = isMajor ? 'rgba(109, 40, 217, 0.72)' : 'rgba(109, 40, 217, 0.38)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, isMajor ? 10 : 5);
+        ctx.stroke();
+        if (gx % 100 === 0 && gx > 0 && gx < effPaper.widthPx - 20) {
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+          ctx.fillRect(px - 14, 1, 28, 11);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 8.5px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(String(gx), px, 9.5);
+        }
+      }
+      for (let gy = 0; gy <= effPaper.heightPx; gy += 25) {
+        const py = Math.round(gy * sy) + 0.5;
+        const isMajor = gy % 50 === 0;
+        if (isMajor && gy > 0 && gy < effPaper.heightPx) {
+          ctx.strokeStyle = 'rgba(124, 58, 237, 0.16)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, py);
+          ctx.lineTo(c.width, py);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = isMajor ? 'rgba(109, 40, 217, 0.72)' : 'rgba(109, 40, 217, 0.38)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, py);
+        ctx.lineTo(isMajor ? 10 : 5, py);
+        ctx.stroke();
+        if (gy % 100 === 0 && gy > 0 && gy < effPaper.heightPx - 16) {
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+          ctx.fillRect(1, py - 6, 26, 11);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 8.5px monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(String(gy), 3, py + 2.5);
+        }
+      }
+
+      ctx.textAlign = 'left';
+      sectionsOnPage.forEach((sec) => {
+        const x = Math.round(sec.x * sx);
+        const y = Math.round(sec.y * sy);
+        const w = Math.max(12, Math.round(sec.width * sx));
+        const h = Math.max(12, Math.round(sec.height * sy));
+        const isSel = selectedMoveId && sec.moveId === selectedMoveId;
+        ctx.strokeStyle = isSel ? '#db2777' : '#7c3aed';
+        ctx.lineWidth = isSel ? 2.2 : 1.3;
+        ctx.setLineDash(isSel ? [] : [4, 3]);
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
+
+        const tag = `${sec.moveId} (${sec.x},${sec.y} ${sec.width}×${sec.height})`;
+        ctx.font = 'bold 9px monospace';
+        const tw = Math.min(c.width - x - 4, ctx.measureText(tag).width + 8);
+        const ly = Math.max(12, y);
+        ctx.fillStyle = isSel ? 'rgba(219, 39, 119, 0.92)' : 'rgba(109, 40, 217, 0.86)';
+        ctx.fillRect(x, ly - 11, tw, 12);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(tag, x + 4, ly - 2.5, tw - 6);
+      });
+      ctx.restore();
+      return c;
+    }
+
+    // Bulletproof 3-Tier Live Preview Screenshot Capture for Gemini Vision:
+    // When `annotate: true`, overlays exact 1px-precision coordinate rulers & section bounding IDs!
+    async function captureLivePreviewImagesForAi(resume, telemetryBundle, opts = {}) {
+      const annotate = opts.annotate !== false;
       const { paper, effPaper, pagesHtml, sectionsLayout } = telemetryBundle;
       const d = resume.designSettings || DEFAULT_DESIGN_SETTINGS;
       const bgColor = d.pageBgColor || '#ffffff';
@@ -3591,28 +4132,28 @@
           const sheetEl = staging.querySelector('.physical-paper-sheet');
           if (!sheetEl) continue;
           await waitForDomAndAssetsReady(staging);
+          const secsOnPage = (sectionsLayout || []).filter((s) => s.pageIndex === i);
           let captured = null;
-          // Tier 1: Full-fidelity live screenshot with embedded Google Fonts
+
           try {
-            const shot = await captureDirectSheetScreenshot(sheetEl, paper, bgColor, fontEmbedCSS, 0.86);
-            const jpgUrl = shot.canvas.toDataURL('image/jpeg', 0.80);
+            const shot = await captureDirectSheetScreenshot(sheetEl, paper, bgColor, fontEmbedCSS, 0.90);
+            const finalCanvas = annotate ? annotateVisionCanvasWithPixelCoords(shot.canvas, effPaper, secsOnPage, state.selectedMoveId) : shot.canvas;
+            const jpgUrl = finalCanvas.toDataURL('image/jpeg', 0.82);
             const b64 = jpgUrl.split(',')[1] || '';
-            if (b64) captured = { pageNumber: i + 1, mimeType: 'image/jpeg', data: b64, dataUrl: jpgUrl };
+            if (b64) captured = { pageNumber: i + 1, mimeType: 'image/jpeg', data: b64, dataUrl: jpgUrl, annotated: annotate };
           } catch {}
 
-          // Tier 2: Retry without heavy embedded base64 font CSS
           if (!captured) {
             try {
-              const shot2 = await captureDirectSheetScreenshot(sheetEl, paper, bgColor, '', 0.76);
-              const jpgUrl2 = shot2.canvas.toDataURL('image/jpeg', 0.78);
+              const shot2 = await captureDirectSheetScreenshot(sheetEl, paper, bgColor, '', 0.78);
+              const finalCanvas2 = annotate ? annotateVisionCanvasWithPixelCoords(shot2.canvas, effPaper, secsOnPage, state.selectedMoveId) : shot2.canvas;
+              const jpgUrl2 = finalCanvas2.toDataURL('image/jpeg', 0.80);
               const b64_2 = jpgUrl2.split(',')[1] || '';
-              if (b64_2) captured = { pageNumber: i + 1, mimeType: 'image/jpeg', data: b64_2, dataUrl: jpgUrl2 };
+              if (b64_2) captured = { pageNumber: i + 1, mimeType: 'image/jpeg', data: b64_2, dataUrl: jpgUrl2, annotated: annotate };
             } catch {}
           }
 
-          // Tier 3: Guaranteed Canvas 2D Structural Map fallback so AI NEVER flies blind!
           if (!captured) {
-            const secsOnPage = (sectionsLayout || []).filter((s) => s.pageIndex === i);
             captured = renderStructuralFallbackSnapshot(paper, effPaper, secsOnPage, i + 1, pagesHtml.length, bgColor);
           }
 
@@ -3909,10 +4450,16 @@
     }
 
     function switchTab(tab) {
-      state.activeTab = tab === 'chat' ? 'chat' : tab === 'templates' ? 'templates' : 'preview';
+      state.activeTab = ['chat', 'split', 'templates', 'preview'].includes(tab) ? tab : 'preview';
       applyActiveTabUI();
       if (state.activeTab === 'chat') {
         renderChatPanel();
+      } else if (state.activeTab === 'split') {
+        renderPreviewPanel();
+        renderChatPanel();
+        setTimeout(() => {
+          if (state.activeTab === 'split') setZoomFitWidth();
+        }, 40);
       } else if (state.activeTab === 'templates') {
         renderTemplatesGalleryPage();
       } else {
@@ -3928,29 +4475,57 @@
     }
 
     function applyActiveTabUI() {
-      const tabs = [
-        { id: 'chat', btn: document.getElementById('tab-btn-chat'), panel: document.getElementById('panel-chat') },
-        { id: 'preview', btn: document.getElementById('tab-btn-preview'), panel: document.getElementById('panel-preview') },
-        { id: 'templates', btn: document.getElementById('tab-btn-templates'), panel: document.getElementById('panel-templates') },
+      const isSplit = state.activeTab === 'split';
+      const panelChat = document.getElementById('panel-chat');
+      const panelPreview = document.getElementById('panel-preview');
+      const panelTemplates = document.getElementById('panel-templates');
+
+      if (panelChat) {
+        const showChat = state.activeTab === 'chat' || isSplit;
+        panelChat.classList.toggle('hidden', !showChat);
+        panelChat.classList.toggle('flex', showChat);
+        panelChat.classList.toggle('w-full', !isSplit);
+        panelChat.style.width = isSplit ? '41%' : '';
+        panelChat.style.minWidth = isSplit ? '340px' : '';
+        panelChat.style.order = isSplit ? '2' : '';
+        panelChat.classList.toggle('border-l', isSplit);
+        panelChat.classList.toggle('border-slate-200', isSplit);
+        panelChat.classList.toggle('dark:border-slate-800', isSplit);
+      }
+      if (panelPreview) {
+        const showPrev = state.activeTab === 'preview' || isSplit;
+        panelPreview.classList.toggle('hidden', !showPrev);
+        panelPreview.classList.toggle('flex', showPrev);
+        panelPreview.classList.toggle('w-full', !isSplit);
+        panelPreview.style.width = isSplit ? '59%' : '';
+        panelPreview.style.minWidth = isSplit ? '0' : '';
+        panelPreview.style.order = isSplit ? '1' : '';
+      }
+      if (panelTemplates) {
+        const showTpl = state.activeTab === 'templates';
+        panelTemplates.classList.toggle('hidden', !showTpl);
+        panelTemplates.classList.toggle('flex', showTpl);
+      }
+
+      const btns = [
+        { id: 'chat', btn: document.getElementById('tab-btn-chat') },
+        { id: 'split', btn: document.getElementById('tab-btn-split') },
+        { id: 'preview', btn: document.getElementById('tab-btn-preview') },
+        { id: 'templates', btn: document.getElementById('tab-btn-templates') },
       ];
       const activeClasses = ['bg-white', 'dark:bg-slate-950', 'text-purple-700', 'dark:text-purple-400', 'shadow-sm'];
       const inactiveClasses = ['text-slate-600', 'dark:text-slate-300'];
 
-      tabs.forEach(({ id, btn, panel }) => {
+      btns.forEach(({ id, btn }) => {
+        if (!btn) return;
         const isActive = state.activeTab === id;
-        if (panel) {
-          panel.classList.toggle('hidden', !isActive);
-          panel.classList.toggle('flex', isActive);
-        }
-        if (btn) {
-          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-          if (isActive) {
-            btn.classList.add(...activeClasses);
-            btn.classList.remove(...inactiveClasses);
-          } else {
-            btn.classList.remove(...activeClasses);
-            btn.classList.add(...inactiveClasses);
-          }
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        if (isActive) {
+          btn.classList.add(...activeClasses);
+          btn.classList.remove(...inactiveClasses);
+        } else {
+          btn.classList.remove(...activeClasses);
+          btn.classList.add(...inactiveClasses);
         }
       });
     }
@@ -4535,7 +5110,9 @@
 
           if (res.ok) {
             const data = await res.json();
-            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const respParts = Array.isArray(data?.candidates?.[0]?.content?.parts) ? data.candidates[0].content.parts : [];
+            const nonThoughtText = respParts.filter((p) => p && !p.thought && typeof p.text === 'string').map((p) => p.text).join('').trim();
+            const rawText = nonThoughtText || respParts.filter((p) => p && typeof p.text === 'string').map((p) => p.text).join('').trim();
             if (!rawText) {
               if (attempt >= MAX_RETRY_ATTEMPTS) {
                 throw new Error(`${activeModelId} returned empty responses across ${MAX_RETRY_ATTEMPTS} attempts. Try switching models or retrying.`);
@@ -4602,6 +5179,519 @@
       }
     }
 
+    // =========================================================================
+    // NATIVE GEMINI FUNCTION CALLING TOOLSET (FULL PIXEL & CONTENT PRECISION)
+    // =========================================================================
+    const RESUME_AI_TOOL_DECLARATIONS = [
+      {
+        name: 'set_global_typography_and_design',
+        description: 'Update global resume fonts, font sizes, line height, spacing, margins, colors, photo settings, sidebar width, or page fit scale.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            fontFamily: { type: 'STRING', description: 'Body font family name' },
+            headingFontFamily: { type: 'STRING', description: 'Heading font family name or "inherit"' },
+            fontSize: { type: 'NUMBER', description: 'Body font size in px (8.5 to 16)' },
+            nameSize: { type: 'NUMBER', description: 'Name title size in px (18 to 38)' },
+            headingSize: { type: 'NUMBER', description: 'Section heading size in px (9 to 16)' },
+            lineHeight: { type: 'NUMBER', description: 'Global line height multiplier (1.05 to 2.2)' },
+            sectionGap: { type: 'NUMBER', description: 'Gap between sections in px (0 to 36)' },
+            itemGap: { type: 'NUMBER', description: 'Gap between items/roles in px (2 to 24)' },
+            letterSpacing: { type: 'NUMBER', description: 'Letter spacing in px (-1 to 3)' },
+            marginTop: { type: 'NUMBER', description: 'Top page margin in inches (0.2 to 1.5)' },
+            marginBottom: { type: 'NUMBER', description: 'Bottom page margin in inches (0.2 to 1.5)' },
+            marginLeft: { type: 'NUMBER', description: 'Left page margin in inches (0.2 to 1.5)' },
+            marginRight: { type: 'NUMBER', description: 'Right page margin in inches (0.2 to 1.5)' },
+            sidebarWidth: { type: 'NUMBER', description: 'Sidebar column width in px (180 to 340)' },
+            contentScale: { type: 'NUMBER', description: 'Proportional page fit scale (0.68 to 1.0)' },
+            accentColor: { type: 'STRING', description: 'Hex color #rrggbb or color name' },
+            textColor: { type: 'STRING', description: 'Body text hex color #rrggbb' },
+            mutedColor: { type: 'STRING', description: 'Secondary/muted text hex color #rrggbb' },
+            headerBgColor: { type: 'STRING', description: 'Header/banner/rail background hex color #rrggbb' },
+            headerTextColor: { type: 'STRING', description: 'Header text hex color #rrggbb' },
+            pageBgColor: { type: 'STRING', description: 'Paper background hex color #rrggbb' },
+            showPhoto: { type: 'BOOLEAN', description: 'Show or hide the profile photo' },
+            photoSize: { type: 'NUMBER', description: 'Photo size in px (48 to 288; 192 = 2 inches)' },
+            photoShape: { type: 'STRING', description: 'circle | rounded | square' },
+            photoPosition: { type: 'STRING', description: 'left | right' },
+            headerAlign: { type: 'STRING', description: 'left | center' },
+            headingStyle: { type: 'STRING', description: 'uppercase | capitalize | none' },
+            dividerStyle: { type: 'STRING', description: 'solid | accent-bar | double | left-bar | none' },
+            bulletStyle: { type: 'STRING', description: 'disc | square | dash | none' },
+            iconStyle: { type: 'STRING', description: 'all | contact | none' },
+          },
+        },
+      },
+      {
+        name: 'move_or_resize_section',
+        description: 'Move, reposition across pages, nudge, resize width, or scale any section or Profile Photo using exact pixel-per-pixel coordinates from the annotated grid and sectionsLayout.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            moveId: { type: 'STRING', description: 'Exact moveId from sectionsLayout, e.g. "p0::skills", "p1::education", "p0::photo"' },
+            targetPage: { type: 'INTEGER', description: '0-based destination page index (0 = Page 1, 1 = Page 2)' },
+            absX: { type: 'NUMBER', description: 'Exact left X coordinate in pixels from paper left edge (0..816)' },
+            absY: { type: 'NUMBER', description: 'Exact top Y coordinate in pixels from paper top edge (0..1056 or 1248)' },
+            dx: { type: 'NUMBER', description: 'Relative horizontal shift in pixels (positive = right, negative = left)' },
+            dy: { type: 'NUMBER', description: 'Relative vertical shift in pixels (positive = down, negative = up)' },
+            width: { type: 'NUMBER', description: 'Target section width in pixels (130 to 790)' },
+            dw: { type: 'NUMBER', description: 'Relative width delta in pixels (e.g. +40 or -40)' },
+            scale: { type: 'NUMBER', description: 'Per-section visual scale factor (0.65 to 1.35)' },
+            position: { type: 'STRING', description: 'Optional named anchor: top-left | top-right | bottom-left | bottom-right | left | right | center' },
+            z: { type: 'INTEGER', description: 'Z-index stacking layer' },
+            reset: { type: 'BOOLEAN', description: 'Set true to reset this section to its default position' },
+          },
+          required: ['moveId'],
+        },
+      },
+      {
+        name: 'set_section_style',
+        description: 'Apply per-section typography, line spacing, padding, border, background, text color, or alignment overrides to ONE specific section without changing the rest of the resume.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            moveId: { type: 'STRING', description: 'Exact moveId from sectionsLayout, e.g. "p0::experience", "p0::summary"' },
+            fontSize: { type: 'NUMBER', description: 'Section-specific font size in px (7.5 to 22)' },
+            lineHeight: { type: 'NUMBER', description: 'Section-specific line height multiplier (1.0 to 2.4)' },
+            letterSpacing: { type: 'NUMBER', description: 'Section-specific letter spacing in px (-1 to 4)' },
+            itemGap: { type: 'NUMBER', description: 'Section-specific bullet/item vertical gap in px (0 to 24)' },
+            padding: { type: 'STRING', description: 'Section inner padding in px, e.g. "10px 14px" or "12"' },
+            backgroundColor: { type: 'STRING', description: 'Section background color (#rrggbb, rgba, or transparent)' },
+            textColor: { type: 'STRING', description: 'Section text color (#rrggbb or named color)' },
+            borderColor: { type: 'STRING', description: 'Border color (#rrggbb) to frame the section as a card' },
+            borderRadius: { type: 'NUMBER', description: 'Corner radius in px (0 to 24)' },
+            textAlign: { type: 'STRING', description: 'left | center | right | justify' },
+            reset: { type: 'BOOLEAN', description: 'Set true to clear custom styles on this section' },
+          },
+          required: ['moveId'],
+        },
+      },
+      {
+        name: 'rename_section_heading',
+        description: 'Rename the visible heading label of any standard resume section across the template (e.g., rename "skills" to "Technical Stack" or "experience" to "Leadership & Impact").',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            sectionKey: { type: 'STRING', description: 'One of: summary | experience | education | skills | projects | certifications | contact' },
+            newTitle: { type: 'STRING', description: 'New visible heading label (or empty string to reset to default)' },
+          },
+          required: ['sectionKey', 'newTitle'],
+        },
+      },
+      {
+        name: 'switch_template_or_document',
+        description: 'Switch CV template, change paper size (Short/Long Bond), reorder or hide sections, rename document title, trigger exact 1-page auto-fit, or reset design/positions.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            templateId: { type: 'STRING', description: 'Template ID from the 59-template catalog' },
+            paperSize: { type: 'STRING', description: 'letter (8.5x11 Short Bond) | legal (8.5x13 Long Bond)' },
+            sectionOrder: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Ordered array of section keys' },
+            hiddenSections: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Array of section keys to hide' },
+            title: { type: 'STRING', description: 'Resume file title' },
+            fitToOnePage: { type: 'BOOLEAN', description: 'Run exact binary-search 1-page auto-fit solver' },
+            resetDesign: { type: 'BOOLEAN', description: 'Reset typography & colors to template defaults' },
+            resetSectionPositions: { type: 'BOOLEAN', description: 'Reset all moved section positions to defaults' },
+            resetSectionStyles: { type: 'BOOLEAN', description: 'Clear all per-section style overrides' },
+          },
+        },
+      },
+      {
+        name: 'patch_resume_content',
+        description: 'Propose surgical text edits to a specific bullet, field, or whole section strictly using real resume facts (never invent employers, dates, degrees, or numbers). Compiles into an approval-ready Proposed Edit card.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            section: { type: 'STRING', description: 'summary | personalInfo | experience | education | skills | projects | certifications | extraSections | full_resume' },
+            op: { type: 'STRING', description: 'update_bullet | add_bullet | delete_bullet | update_field | replace_section' },
+            itemIndex: { type: 'INTEGER', description: '0-based role/project/education/skill-group index (for item/bullet ops)' },
+            bulletIndex: { type: 'INTEGER', description: '0-based bullet index (for update_bullet / delete_bullet)' },
+            field: { type: 'STRING', description: 'Field name for update_field (e.g. headline, position, company, fullName, degree, category)' },
+            value: { type: 'STRING', description: 'New text value (or JSON string for replace_section arrays/objects)' },
+            rationale: { type: 'STRING', description: 'Concise 1-sentence reason for the edit' },
+          },
+          required: ['section', 'op', 'rationale'],
+        },
+      },
+    ];
+
+    async function callGeminiWithTools(contents, systemInstruction, onRetryStatus = null) {
+      if (!state.apiKey) {
+        throw new Error('Gemini API is not connected. Open "Menu & Tools → AI & Tools → Gemini API Settings" to connect your API key.');
+      }
+      const activeModelId = state.selectedModelId || 'gemini-3.5-flash-lite';
+      if (state.retryAbortController) state.retryAbortController.abort();
+
+      const endpoint = `${state.baseUrl}/models/${encodeURIComponent(activeModelId)}:generateContent`;
+      const payload = {
+        contents,
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        tools: [{ functionDeclarations: RESUME_AI_TOOL_DECLARATIONS }],
+        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+        generationConfig: { temperature: 0.15 },
+      };
+
+      const MAX_RETRY_ATTEMPTS = 4;
+      const abortController = new AbortController();
+      state.retryAbortController = abortController;
+      let attempt = 0;
+
+      try {
+        while (attempt < MAX_RETRY_ATTEMPTS) {
+          if (abortController.signal.aborted) throw new Error('Request cancelled while retrying.');
+          attempt += 1;
+          const { url, opts } = buildGeminiFetchOptions(state.apiKey, endpoint, 'POST', payload);
+          opts.signal = abortController.signal;
+
+          const res = await fetch(url, opts);
+          if (res.ok) {
+            const data = await res.json();
+            const parts = Array.isArray(data?.candidates?.[0]?.content?.parts) ? data.candidates[0].content.parts : [];
+            const functionCalls = parts
+              .filter((p) => p && p.functionCall && p.functionCall.name)
+              .map((p) => ({ name: p.functionCall.name, args: p.functionCall.args || {} }));
+            const textStr = parts
+              .filter((p) => p && !p.thought && typeof p.text === 'string')
+              .map((p) => p.text)
+              .join('\n')
+              .trim();
+            return { functionCalls, text: textStr, rawParts: parts };
+          }
+
+          const errBody = await res.text().catch(() => '');
+          let code = res.status;
+          let errMsg = errBody;
+          try {
+            const j = JSON.parse(errBody);
+            if (j?.error) {
+              code = j.error.code || res.status;
+              errMsg = j.error.message || errBody;
+            }
+          } catch {}
+
+          const isTransient = [429, 500, 502, 503, 504].includes(code) || /UNAVAILABLE|RESOURCE_EXHAUSTED|high demand|overloaded/i.test(errMsg);
+          if (isTransient && attempt < MAX_RETRY_ATTEMPTS) {
+            const delaySec = Math.min(8, Math.max(2, Math.round(1.5 * Math.pow(1.5, attempt - 1))));
+            await waitWithCountdown(delaySec, abortController.signal, (rem) => {
+              const msg = `${activeModelId} busy (${code}). Auto-retrying (${attempt}/${MAX_RETRY_ATTEMPTS}) in ${rem}s...`;
+              showStatusBanner('warning', msg, true);
+              if (typeof onRetryStatus === 'function') onRetryStatus(msg);
+            });
+            continue;
+          }
+          throw new Error(`TOOL_UNSUPPORTED:${code}:${errMsg.slice(0, 220)}`);
+        }
+      } finally {
+        if (state.retryAbortController === abortController) state.retryAbortController = null;
+      }
+      throw new Error('TOOL_UNSUPPORTED:exhausted');
+    }
+
+    function applyAiSectionStylesToResume(resume, styleOps, telemetryBundle) {
+      if (!Array.isArray(styleOps) || styleOps.length === 0) return [];
+      const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
+      const layoutList = telemetryBundle?.sectionsLayout || [];
+      resume.sectionStyles = resume.sectionStyles || {};
+      resume.sectionStyles[tpl] = resume.sectionStyles[tpl] || {};
+      const map = resume.sectionStyles[tpl];
+      const logs = [];
+
+      styleOps.forEach((raw) => {
+        if (!raw || typeof raw !== 'object') return;
+        let moveId = String(raw.moveId ?? raw.sectionId ?? raw.section ?? raw.target ?? '').trim();
+        if (!moveId) return;
+        if (!layoutList.some((s) => s.moveId === moveId)) {
+          const clean = moveId.toLowerCase().replace(/^p\d+::/, '').replace(/[^a-z0-9_-]/g, '');
+          const match = layoutList.find((s) => s.moveId.endsWith(`::${clean}`) || s.label.toLowerCase().includes(clean));
+          if (match) moveId = match.moveId;
+          else if (!moveId.includes('::')) moveId = `p0::${clean}`;
+        }
+        const secLabel = layoutList.find((s) => s.moveId === moveId)?.label || moveId.split('::')[1] || moveId;
+
+        if (raw.reset === true) {
+          if (map[moveId]) {
+            delete map[moveId];
+            logs.push(`Reset ${secLabel} custom styles`);
+          }
+          return;
+        }
+
+        const next = { ...(map[moveId] || {}) };
+        const changedParts = [];
+
+        const fs = parseLooseNumeric(raw.fontSize ?? raw.font_size);
+        if (Number.isFinite(fs)) {
+          next.fontSize = Math.round(Math.min(22, Math.max(7.5, fs)) * 10) / 10;
+          changedParts.push(`${next.fontSize}px font`);
+        }
+        const lh = parseLooseNumeric(raw.lineHeight ?? raw.line_height);
+        if (Number.isFinite(lh)) {
+          next.lineHeight = Math.round(Math.min(2.4, Math.max(1.0, lh)) * 100) / 100;
+          changedParts.push(`LH ${next.lineHeight}`);
+        }
+        const ls = parseLooseNumeric(raw.letterSpacing ?? raw.letter_spacing);
+        if (Number.isFinite(ls)) {
+          next.letterSpacing = Math.round(Math.min(4, Math.max(-1, ls)) * 100) / 100;
+          changedParts.push(`track ${next.letterSpacing}px`);
+        }
+        const ig = parseLooseNumeric(raw.itemGap ?? raw.item_gap);
+        if (Number.isFinite(ig)) {
+          next.itemGap = Math.round(Math.min(24, Math.max(0, ig)));
+          changedParts.push(`gap ${next.itemGap}px`);
+        }
+        if (raw.padding !== undefined && raw.padding !== null && String(raw.padding).trim() !== '') {
+          const pStr = String(raw.padding).trim();
+          next.padding = /^\d+(?:\.\d+)?$/.test(pStr) ? `${pStr}px` : pStr.replace(/[;{}<>]/g, '').slice(0, 32);
+          changedParts.push(`pad ${next.padding}`);
+        }
+        if (raw.backgroundColor || raw.background_color) {
+          const bgRaw = String(raw.backgroundColor || raw.background_color).trim();
+          if (bgRaw.toLowerCase() === 'transparent' || bgRaw.toLowerCase() === 'none') {
+            next.backgroundColor = 'transparent';
+            changedParts.push('bg transparent');
+          } else {
+            const hex = normalizeHexColor(bgRaw);
+            if (hex) {
+              next.backgroundColor = hex;
+              changedParts.push(`bg ${hex}`);
+            }
+          }
+        }
+        if (raw.textColor || raw.text_color) {
+          const hex = normalizeHexColor(String(raw.textColor || raw.text_color));
+          if (hex) {
+            next.textColor = hex;
+            changedParts.push(`text ${hex}`);
+          }
+        }
+        if (raw.borderColor || raw.border_color) {
+          const hex = normalizeHexColor(String(raw.borderColor || raw.border_color));
+          if (hex) {
+            next.borderColor = hex;
+            changedParts.push(`border ${hex}`);
+          }
+        }
+        const br = parseLooseNumeric(raw.borderRadius ?? raw.border_radius);
+        if (Number.isFinite(br)) {
+          next.borderRadius = Math.round(Math.min(24, Math.max(0, br)));
+          changedParts.push(`radius ${next.borderRadius}px`);
+        }
+        const ta = String(raw.textAlign ?? raw.text_align ?? '').trim().toLowerCase();
+        if (['left', 'center', 'right', 'justify'].includes(ta)) {
+          next.textAlign = ta;
+          changedParts.push(`align ${ta}`);
+        }
+
+        if (changedParts.length > 0) {
+          map[moveId] = next;
+          logs.push(`Styled ${secLabel} (${changedParts.join(', ')})`);
+        }
+      });
+      return logs;
+    }
+
+    function compileSurgicalPatchesToProposedEdit(patches, resume) {
+      if (!Array.isArray(patches) || patches.length === 0 || !resume) return null;
+      const cloned = JSON.parse(JSON.stringify(resume));
+      const touched = new Set();
+      const rationales = [];
+
+      patches.forEach((p) => {
+        if (!p || typeof p !== 'object') return;
+        const sec = normalizeCanonicalSection(p.section);
+        const op = String(p.op || 'replace_section').trim().toLowerCase();
+        if (p.rationale) rationales.push(String(p.rationale).trim());
+        const iIdx = Number.isInteger(Number(p.itemIndex)) ? Number(p.itemIndex) : 0;
+        const bIdx = Number.isInteger(Number(p.bulletIndex)) ? Number(p.bulletIndex) : 0;
+        const val = p.value !== undefined ? parseFlexiblePayload(p.value) : '';
+
+        if (sec === 'summary') {
+          if (typeof val === 'string' && val.trim()) {
+            cloned.summary = val.trim();
+            touched.add('summary');
+          }
+        } else if (sec === 'personalInfo') {
+          if (op === 'update_field' && p.field && typeof val === 'string') {
+            cloned.personalInfo = normalizePersonalInfo({ [p.field]: val.trim() }, cloned.personalInfo);
+            touched.add('personalInfo');
+          } else if (val && typeof val === 'object') {
+            cloned.personalInfo = normalizePersonalInfo(val, cloned.personalInfo);
+            touched.add('personalInfo');
+          }
+        } else if (sec === 'experience') {
+          cloned.experiences = Array.isArray(cloned.experiences) ? cloned.experiences : [];
+          if (op === 'update_bullet' && cloned.experiences[iIdx]) {
+            cloned.experiences[iIdx].highlights = cloned.experiences[iIdx].highlights || [];
+            if (bIdx >= 0 && bIdx < cloned.experiences[iIdx].highlights.length && typeof val === 'string') {
+              cloned.experiences[iIdx].highlights[bIdx] = val.trim();
+              touched.add('experience');
+            }
+          } else if (op === 'add_bullet' && cloned.experiences[iIdx] && typeof val === 'string' && val.trim()) {
+            cloned.experiences[iIdx].highlights = cloned.experiences[iIdx].highlights || [];
+            cloned.experiences[iIdx].highlights.push(val.trim());
+            touched.add('experience');
+          } else if (op === 'delete_bullet' && cloned.experiences[iIdx]?.highlights) {
+            if (bIdx >= 0 && bIdx < cloned.experiences[iIdx].highlights.length) {
+              cloned.experiences[iIdx].highlights.splice(bIdx, 1);
+              touched.add('experience');
+            }
+          } else if (op === 'update_field' && cloned.experiences[iIdx] && p.field && typeof val === 'string') {
+            cloned.experiences[iIdx][p.field] = val.trim();
+            touched.add('experience');
+          } else if (op === 'replace_section') {
+            const norm = normalizeExperiences(val);
+            if (norm.length > 0) {
+              cloned.experiences = norm;
+              touched.add('experience');
+            }
+          }
+        } else if (sec === 'projects') {
+          cloned.projects = Array.isArray(cloned.projects) ? cloned.projects : [];
+          if (op === 'update_bullet' && cloned.projects[iIdx]) {
+            cloned.projects[iIdx].highlights = cloned.projects[iIdx].highlights || [];
+            if (bIdx >= 0 && bIdx < cloned.projects[iIdx].highlights.length && typeof val === 'string') {
+              cloned.projects[iIdx].highlights[bIdx] = val.trim();
+              touched.add('projects');
+            }
+          } else if (op === 'add_bullet' && cloned.projects[iIdx] && typeof val === 'string' && val.trim()) {
+            cloned.projects[iIdx].highlights = cloned.projects[iIdx].highlights || [];
+            cloned.projects[iIdx].highlights.push(val.trim());
+            touched.add('projects');
+          } else if (op === 'delete_bullet' && cloned.projects[iIdx]?.highlights) {
+            if (bIdx >= 0 && bIdx < cloned.projects[iIdx].highlights.length) {
+              cloned.projects[iIdx].highlights.splice(bIdx, 1);
+              touched.add('projects');
+            }
+          } else if (op === 'update_field' && cloned.projects[iIdx] && p.field && typeof val === 'string') {
+            cloned.projects[iIdx][p.field] = val.trim();
+            touched.add('projects');
+          } else if (op === 'replace_section') {
+            cloned.projects = normalizeProjects(val);
+            touched.add('projects');
+          }
+        } else if (sec === 'skills') {
+          if (op === 'add_bullet' && cloned.skills?.[iIdx] && typeof val === 'string' && val.trim()) {
+            cloned.skills[iIdx].items = cloned.skills[iIdx].items || [];
+            cloned.skills[iIdx].items.push(val.trim());
+            touched.add('skills');
+          } else if (op === 'delete_bullet' && cloned.skills?.[iIdx]?.items) {
+            if (bIdx >= 0 && bIdx < cloned.skills[iIdx].items.length) {
+              cloned.skills[iIdx].items.splice(bIdx, 1);
+              touched.add('skills');
+            }
+          } else {
+            const norm = normalizeSkills(val);
+            if (norm.length > 0) {
+              cloned.skills = norm;
+              touched.add('skills');
+            }
+          }
+        } else if (sec === 'education') {
+          if (op === 'update_field' && cloned.education?.[iIdx] && p.field && typeof val === 'string') {
+            cloned.education[iIdx][p.field] = val.trim();
+            touched.add('education');
+          } else {
+            const norm = normalizeEducation(val);
+            if (norm.length > 0) {
+              cloned.education = norm;
+              touched.add('education');
+            }
+          }
+        } else if (sec === 'certifications') {
+          const norm = normalizeCertifications(val);
+          if (norm.length > 0 || op === 'replace_section') {
+            cloned.certifications = norm;
+            touched.add('certifications');
+          }
+        } else if (sec === 'extraSections') {
+          cloned.extraSections = normalizeExtraSections(val);
+          touched.add('extraSections');
+        } else if (sec === 'full_resume' && val && typeof val === 'object') {
+          const direct = extractDirectSectionMapFromObject(val);
+          if (direct) {
+            const sub = normalizeProposedEditPayload({ proposedEdit: { targetSection: 'full_resume', proposedContent: direct, rationale: p.rationale || '' }, hasProposedEdit: true }, cloned);
+            if (sub) {
+              applyNormalizedEditToResume(cloned, sub);
+              Object.keys(direct).forEach((k) => touched.add(k === 'experiences' ? 'experience' : k));
+            }
+          }
+        }
+      });
+
+      const list = Array.from(touched);
+      if (list.length === 0) return null;
+      if (list.length === 1) {
+        const only = list[0];
+        const propVal = only === 'experience' ? cloned.experiences : cloned[only];
+        return normalizeProposedEditPayload({
+          hasProposedEdit: true,
+          proposedEdit: {
+            targetSection: only,
+            rationale: rationales.join(' · ') || `Surgical update to ${only}.`,
+            proposedContent: propVal,
+          },
+        }, resume);
+      }
+
+      const fullPatch = {};
+      list.forEach((sec) => {
+        if (sec === 'experience') fullPatch.experiences = cloned.experiences;
+        else fullPatch[sec] = cloned[sec];
+      });
+      return normalizeProposedEditPayload({
+        hasProposedEdit: true,
+        proposedEdit: {
+          targetSection: 'full_resume',
+          rationale: rationales.join(' · ') || `Surgical updates across ${list.join(', ')}.`,
+          proposedContent: fullPatch,
+        },
+      }, resume);
+    }
+
+    function buildWordDiffHtml(oldText, newText) {
+      const a = String(oldText || '').split(/(\s+)/);
+      const b = String(newText || '').split(/(\s+)/);
+      if (a.length * b.length > 90000) {
+        return { oldHtml: escapeHtml(oldText), newHtml: escapeHtml(newText) };
+      }
+      const m = a.length;
+      const n = b.length;
+      const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+      for (let i = m - 1; i >= 0; i -= 1) {
+        for (let j = n - 1; j >= 0; j -= 1) {
+          dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+        }
+      }
+      let oldOut = '';
+      let newOut = '';
+      let i = 0;
+      let j = 0;
+      while (i < m && j < n) {
+        if (a[i] === b[j]) {
+          const esc = escapeHtml(a[i]);
+          oldOut += esc;
+          newOut += esc;
+          i += 1;
+          j += 1;
+        } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+          oldOut += /^\s+$/.test(a[i]) ? escapeHtml(a[i]) : `<span class="diff-word-del">${escapeHtml(a[i])}</span>`;
+          i += 1;
+        } else {
+          newOut += /^\s+$/.test(b[j]) ? escapeHtml(b[j]) : `<span class="diff-word-add">${escapeHtml(b[j])}</span>`;
+          j += 1;
+        }
+      }
+      while (i < m) {
+        oldOut += /^\s+$/.test(a[i]) ? escapeHtml(a[i]) : `<span class="diff-word-del">${escapeHtml(a[i])}</span>`;
+        i += 1;
+      }
+      while (j < n) {
+        newOut += /^\s+$/.test(b[j]) ? escapeHtml(b[j]) : `<span class="diff-word-add">${escapeHtml(b[j])}</span>`;
+        j += 1;
+      }
+      return { oldHtml: oldOut, newHtml: newOut };
+    }
+
     async function waitWithCountdown(totalSeconds, signal, onTick) {
       for (let remaining = totalSeconds; remaining > 0; remaining -= 1) {
         if (signal?.aborted) throw new Error('Request cancelled while retrying.');
@@ -4639,6 +5729,8 @@
         designSettings: { ...DEFAULT_DESIGN_SETTINGS, ...TEMPLATE_DESIGN_PRESETS['modern-minimal'] },
         hiddenSections: [],
         sectionPositions: {},
+        sectionStyles: {},
+        sectionTitles: {},
         personalInfo: {
           fullName: '',
           headline: '',
@@ -5426,6 +6518,331 @@ Return strictly valid JSON:
         }));
     }
 
+    function isMeaningfulProposedContent(val) {
+      if (val === null || val === undefined) return false;
+      if (typeof val === 'string') return val.trim().length > 0;
+      if (Array.isArray(val)) {
+        return val.some((item) => isMeaningfulProposedContent(item));
+      }
+      if (typeof val === 'object') {
+        return Object.values(val).some((v) => isMeaningfulProposedContent(v));
+      }
+      return false;
+    }
+
+    function getCurrentSectionSnapshotForDiff(resume, canonicalSection, proposedContent = null) {
+      if (!resume) return '';
+      const cleanPi = { ...(resume.personalInfo || {}) };
+      delete cleanPi.photoDataUrl;
+      delete cleanPi.photoShape;
+      if (canonicalSection === 'summary') return resume.summary || '';
+      if (canonicalSection === 'personalInfo') return cleanPi;
+      if (canonicalSection === 'experience') return Array.isArray(resume.experiences) ? resume.experiences : [];
+      if (canonicalSection === 'education') return Array.isArray(resume.education) ? resume.education : [];
+      if (canonicalSection === 'skills') return Array.isArray(resume.skills) ? resume.skills : [];
+      if (canonicalSection === 'projects') return Array.isArray(resume.projects) ? resume.projects : [];
+      if (canonicalSection === 'certifications') return Array.isArray(resume.certifications) ? resume.certifications : [];
+      if (canonicalSection === 'extraSections') return Array.isArray(resume.extraSections) ? resume.extraSections : [];
+      if (canonicalSection === 'full_resume') {
+        const snap = {};
+        const propObj = proposedContent && typeof proposedContent === 'object' && !Array.isArray(proposedContent) ? proposedContent : {};
+        if (propObj.title !== undefined) snap.title = resume.title || '';
+        if (propObj.personalInfo !== undefined || propObj.personal_info !== undefined) snap.personalInfo = cleanPi;
+        if (propObj.summary !== undefined) snap.summary = resume.summary || '';
+        if (propObj.experiences !== undefined || propObj.experience !== undefined) snap.experiences = resume.experiences || [];
+        if (propObj.education !== undefined) snap.education = resume.education || [];
+        if (propObj.skills !== undefined) snap.skills = resume.skills || [];
+        if (propObj.projects !== undefined) snap.projects = resume.projects || [];
+        if (propObj.certifications !== undefined) snap.certifications = resume.certifications || [];
+        if (propObj.extraSections !== undefined || propObj.extra_sections !== undefined) snap.extraSections = resume.extraSections || [];
+        return Object.keys(snap).length > 0 ? snap : { summary: resume.summary || '', experiences: resume.experiences || [] };
+      }
+      return '';
+    }
+
+    function extractDirectSectionMapFromObject(obj) {
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+      const out = {};
+      if (typeof obj.title === 'string' && obj.title.trim()) out.title = obj.title.trim();
+      const pi = obj.personalInfo ?? obj.personal_info ?? obj.contact ?? obj.contactInfo ?? obj.contact_info;
+      if (pi && typeof pi === 'object' && !Array.isArray(pi)) out.personalInfo = pi;
+      if (typeof obj.headline === 'string' && obj.headline.trim()) {
+        out.personalInfo = { ...(out.personalInfo || {}), headline: obj.headline.trim() };
+      }
+      const sum = obj.summary ?? obj.professional_summary ?? obj.professionalSummary ?? obj.profile ?? obj.about;
+      if (typeof sum === 'string' && sum.trim()) out.summary = sum.trim();
+      const exp = obj.experiences ?? obj.experience ?? obj.work_experience ?? obj.workExperience;
+      if (exp !== undefined && isMeaningfulProposedContent(exp)) out.experiences = exp;
+      const edu = obj.education ?? obj.educations;
+      if (edu !== undefined && isMeaningfulProposedContent(edu)) out.education = edu;
+      const sk = obj.skills ?? obj.core_skills ?? obj.coreSkills ?? obj.technical_skills;
+      if (sk !== undefined && isMeaningfulProposedContent(sk)) out.skills = sk;
+      const proj = obj.projects ?? obj.key_projects;
+      if (proj !== undefined && isMeaningfulProposedContent(proj)) out.projects = proj;
+      const cert = obj.certifications ?? obj.certificates ?? obj.licenses;
+      if (cert !== undefined && isMeaningfulProposedContent(cert)) out.certifications = cert;
+      const ext = obj.extraSections ?? obj.extra_sections ?? obj.additionalSections ?? obj.additional_sections;
+      if (ext !== undefined && isMeaningfulProposedContent(ext)) out.extraSections = ext;
+      return Object.keys(out).length > 0 ? out : null;
+    }
+
+    function mergePartialSingleEntryIfNeeded(section, parsedContent, resume) {
+      if (!resume || !parsedContent) return parsedContent;
+      if (section === 'experience') {
+        const existing = Array.isArray(resume.experiences) ? resume.experiences : [];
+        if (existing.length > 1) {
+          const isSingleObj = !Array.isArray(parsedContent) && typeof parsedContent === 'object' && !Array.isArray(parsedContent.experiences) && !Array.isArray(parsedContent.experience);
+          const normArr = normalizeExperiences(parsedContent);
+          if ((isSingleObj || normArr.length === 1) && normArr.length === 1) {
+            const upd = normArr[0];
+            const idx = existing.findIndex((r) =>
+              (upd.company && r.company && r.company.toLowerCase() === upd.company.toLowerCase()) ||
+              (upd.position && r.position && r.position.toLowerCase() === upd.position.toLowerCase())
+            );
+            if (idx >= 0) {
+              const merged = existing.map((r) => ({ ...r, highlights: [...(r.highlights || [])] }));
+              merged[idx] = {
+                ...merged[idx],
+                ...upd,
+                company: upd.company || merged[idx].company,
+                position: upd.position || merged[idx].position,
+                startDate: upd.startDate || merged[idx].startDate,
+                endDate: upd.endDate || merged[idx].endDate,
+                highlights: upd.highlights && upd.highlights.length > 0 ? upd.highlights : merged[idx].highlights,
+              };
+              return merged;
+            }
+          }
+        }
+      } else if (section === 'projects') {
+        const existing = Array.isArray(resume.projects) ? resume.projects : [];
+        if (existing.length > 1 && !Array.isArray(parsedContent) && typeof parsedContent === 'object' && !Array.isArray(parsedContent.projects)) {
+          const normArr = normalizeProjects(parsedContent);
+          if (normArr.length === 1) {
+            const upd = normArr[0];
+            const idx = existing.findIndex((p) => upd.name && p.name && p.name.toLowerCase() === upd.name.toLowerCase());
+            const merged = existing.map((p) => ({ ...p, highlights: [...(p.highlights || [])] }));
+            if (idx >= 0) merged[idx] = { ...merged[idx], ...upd };
+            else merged.push(upd);
+            return merged;
+          }
+        }
+      } else if (section === 'personalInfo' && typeof parsedContent === 'object' && !Array.isArray(parsedContent)) {
+        return normalizePersonalInfo(parsedContent.personalInfo || parsedContent.personal_info || parsedContent, resume.personalInfo || {});
+      }
+      return parsedContent;
+    }
+
+    // Bulletproof Normalizer for ANY AI Proposed Edit shape (handles alias keys, snake_case,
+    // arrays of multiple edits, direct section-keyed objects, top-level section patches,
+    // partial single-role edits, and auto-hydrates real `originalContent` for Compare Diff!)
+    function normalizeProposedEditPayload(aiResult, resume) {
+      if (!aiResult || typeof aiResult !== 'object') return null;
+
+      let rawEdit =
+        aiResult.proposedEdit ??
+        aiResult.proposed_edit ??
+        aiResult.proposedEdits ??
+        aiResult.proposed_edits ??
+        aiResult.edit ??
+        aiResult.edits ??
+        aiResult.changes ??
+        null;
+
+      // Also recover if Gemini returned resume sections directly at top level of aiResult
+      if (!rawEdit) {
+        const topDirect = extractDirectSectionMapFromObject(aiResult);
+        if (topDirect) {
+          rawEdit = { targetSection: 'full_resume', proposedContent: topDirect, rationale: 'Proposed resume content updates.' };
+        }
+      }
+
+      if (!rawEdit) return null;
+      rawEdit = parseFlexiblePayload(rawEdit);
+
+      // Case A: Array of multiple proposed edits -> merge cleanly into a single `full_resume` object!
+      if (Array.isArray(rawEdit)) {
+        const mergedFull = {};
+        const rationales = [];
+        const placeholders = [];
+        rawEdit.forEach((entry) => {
+          const single = normalizeProposedEditPayload({ proposedEdit: entry, hasProposedEdit: true }, resume);
+          if (!single) return;
+          if (single.rationale) rationales.push(single.rationale);
+          if (Array.isArray(single.unverifiedPlaceholders)) placeholders.push(...single.unverifiedPlaceholders);
+          const sec = normalizeCanonicalSection(single.targetSection);
+          if (sec === 'full_resume' && single.proposedContent && typeof single.proposedContent === 'object') {
+            Object.assign(mergedFull, single.proposedContent);
+          } else if (sec === 'experience') {
+            mergedFull.experiences = single.proposedContent;
+          } else if (sec) {
+            mergedFull[sec] = single.proposedContent;
+          }
+        });
+        if (Object.keys(mergedFull).length === 0) return null;
+        return {
+          targetSection: 'full_resume',
+          rationale: rationales.join(' · ') || 'Proposed updates across multiple resume sections.',
+          originalContent: getCurrentSectionSnapshotForDiff(resume, 'full_resume', mergedFull),
+          proposedContent: mergedFull,
+          unverifiedPlaceholders: [...new Set(placeholders)],
+        };
+      }
+
+      if (typeof rawEdit !== 'object') return null;
+
+      const rawTarget =
+        rawEdit.targetSection ??
+        rawEdit.target_section ??
+        rawEdit.section ??
+        rawEdit.sectionName ??
+        rawEdit.section_name ??
+        rawEdit.target ??
+        rawEdit.field ??
+        '';
+
+      let rawContent =
+        rawEdit.proposedContent ??
+        rawEdit.proposed_content ??
+        rawEdit.content ??
+        rawEdit.newContent ??
+        rawEdit.new_content ??
+        rawEdit.updatedContent ??
+        rawEdit.updated_content ??
+        rawEdit.revisedContent ??
+        rawEdit.revised_content ??
+        rawEdit.replacement ??
+        rawEdit.value ??
+        rawEdit.text ??
+        rawEdit.data ??
+        rawEdit.updated ??
+        rawEdit.after ??
+        undefined;
+
+      let canonicalSection = normalizeCanonicalSection(rawTarget);
+
+      // Case B: Gemini placed section keys directly inside `proposedEdit` (e.g. `{ summary: "...", skills: [...] }` or `{ targetSection: "summary", summary: "..." }`)
+      if (!isMeaningfulProposedContent(rawContent)) {
+        const directMap = extractDirectSectionMapFromObject(rawEdit);
+        if (directMap) {
+          const keys = Object.keys(directMap);
+          if (keys.length === 1) {
+            const onlyKey = keys[0];
+            canonicalSection = normalizeCanonicalSection(onlyKey === 'experiences' ? 'experience' : onlyKey);
+            rawContent = directMap[onlyKey];
+          } else {
+            canonicalSection = 'full_resume';
+            rawContent = directMap;
+          }
+        }
+      }
+
+      // Case C: `rawContent` was still undefined, check `items`/`bullets`/`highlights` if targetSection is known
+      if (!isMeaningfulProposedContent(rawContent)) {
+        const listFallback = rawEdit.items ?? rawEdit.bullets ?? rawEdit.highlights;
+        if (isMeaningfulProposedContent(listFallback)) {
+          rawContent = listFallback;
+        }
+      }
+
+      if (!isMeaningfulProposedContent(rawContent)) return null;
+
+      let parsedContent = parseFlexiblePayload(rawContent);
+
+      // If targetSection wasn't specified, infer it cleanly from parsedContent shape
+      if (!canonicalSection) {
+        if (typeof parsedContent === 'string') {
+          canonicalSection = 'summary';
+        } else if (Array.isArray(parsedContent) && parsedContent.length > 0) {
+          const first = parsedContent[0];
+          if (first && typeof first === 'object') {
+            if (first.position || first.company || first.job_title) canonicalSection = 'experience';
+            else if (first.institution || first.degree || first.school) canonicalSection = 'education';
+            else if (first.category || first.items || first.skills) canonicalSection = 'skills';
+            else if (first.issuer || first.issueDate) canonicalSection = 'certifications';
+            else if (first.heading !== undefined) canonicalSection = 'extraSections';
+            else if (first.name) canonicalSection = 'projects';
+          } else if (typeof first === 'string') {
+            canonicalSection = 'skills';
+          }
+        } else if (parsedContent && typeof parsedContent === 'object') {
+          const directIn = extractDirectSectionMapFromObject(parsedContent);
+          if (directIn) {
+            const keys = Object.keys(directIn);
+            canonicalSection = keys.length === 1 ? normalizeCanonicalSection(keys[0] === 'experiences' ? 'experience' : keys[0]) : 'full_resume';
+            parsedContent = keys.length === 1 ? directIn[keys[0]] : directIn;
+          } else if (parsedContent.fullName || parsedContent.headline || parsedContent.email) {
+            canonicalSection = 'personalInfo';
+          }
+        }
+      }
+
+      if (!canonicalSection) canonicalSection = 'full_resume';
+
+      // Handle single-field personalInfo edits like targetSection: "headline" with plain string proposedContent
+      if (canonicalSection === 'personalInfo' && typeof parsedContent === 'string') {
+        const lowerTarget = String(rawTarget || '').toLowerCase();
+        const keyName = lowerTarget.includes('name') ? 'fullName'
+          : lowerTarget.includes('email') ? 'email'
+          : lowerTarget.includes('phone') ? 'phone'
+          : lowerTarget.includes('location') ? 'location'
+          : lowerTarget.includes('linkedin') ? 'linkedin'
+          : lowerTarget.includes('website') || lowerTarget.includes('portfolio') ? 'website'
+          : 'headline';
+        parsedContent = normalizePersonalInfo({ [keyName]: parsedContent.trim() }, resume?.personalInfo || {});
+      } else {
+        parsedContent = mergePartialSingleEntryIfNeeded(canonicalSection, parsedContent, resume);
+      }
+
+      // Normalize canonical shape for clean preview & guaranteed Apply success
+      if (canonicalSection === 'experience' && typeof parsedContent !== 'string') {
+        const normExp = normalizeExperiences(parsedContent);
+        if (normExp.length > 0) parsedContent = normExp;
+      } else if (canonicalSection === 'education') {
+        const normEdu = normalizeEducation(parsedContent);
+        if (normEdu.length > 0) parsedContent = normEdu;
+      } else if (canonicalSection === 'skills') {
+        const normSkills = normalizeSkills(parsedContent);
+        if (normSkills.length > 0) parsedContent = normSkills;
+      } else if (canonicalSection === 'projects') {
+        const normProj = normalizeProjects(parsedContent);
+        if (normProj.length > 0) parsedContent = normProj;
+      } else if (canonicalSection === 'certifications') {
+        const normCert = normalizeCertifications(parsedContent);
+        if (normCert.length > 0) parsedContent = normCert;
+      } else if (canonicalSection === 'summary' && parsedContent && typeof parsedContent === 'object' && typeof parsedContent.summary === 'string') {
+        parsedContent = parsedContent.summary.trim();
+      } else if (canonicalSection === 'full_resume' && parsedContent && typeof parsedContent === 'object' && !Array.isArray(parsedContent)) {
+        const cleanedFull = extractDirectSectionMapFromObject(parsedContent) || parsedContent;
+        if (cleanedFull.experiences) cleanedFull.experiences = normalizeExperiences(cleanedFull.experiences);
+        if (cleanedFull.education) cleanedFull.education = normalizeEducation(cleanedFull.education);
+        if (cleanedFull.skills) cleanedFull.skills = normalizeSkills(cleanedFull.skills);
+        if (cleanedFull.projects) cleanedFull.projects = normalizeProjects(cleanedFull.projects);
+        if (cleanedFull.certifications) cleanedFull.certifications = normalizeCertifications(cleanedFull.certifications);
+        if (cleanedFull.personalInfo) cleanedFull.personalInfo = normalizePersonalInfo(cleanedFull.personalInfo, resume?.personalInfo || {});
+        parsedContent = cleanedFull;
+      }
+
+      if (!isMeaningfulProposedContent(parsedContent)) return null;
+
+      const rawOriginal = rawEdit.originalContent ?? rawEdit.original_content ?? rawEdit.before;
+      const hydratedOriginal = isMeaningfulProposedContent(rawOriginal)
+        ? parseFlexiblePayload(rawOriginal)
+        : getCurrentSectionSnapshotForDiff(resume, canonicalSection, parsedContent);
+
+      const unverified = Array.isArray(rawEdit.unverifiedPlaceholders ?? rawEdit.unverified_placeholders)
+        ? (rawEdit.unverifiedPlaceholders ?? rawEdit.unverified_placeholders).map((x) => String(x || '').trim()).filter(Boolean)
+        : [];
+
+      return {
+        targetSection: canonicalSection,
+        rationale: String(rawEdit.rationale ?? rawEdit.reason ?? rawEdit.summary ?? rawEdit.description ?? '').trim(),
+        originalContent: hydratedOriginal,
+        proposedContent: parsedContent,
+        unverifiedPlaceholders: unverified,
+      };
+    }
+
     function applyNormalizedEditToResume(resume, edit) {
       if (!edit || typeof edit !== 'object') {
         throw new Error('Proposed edit payload is missing.');
@@ -5598,14 +7015,19 @@ Return strictly valid JSON:
             if (typeof item === 'string') {
               lines.push(`• ${item}`);
             } else if (item && typeof item === 'object') {
-              if (item.position || item.company) {
-                lines.push(`${item.position || 'Role'} — ${item.company || ''} (${item.startDate || ''}–${item.endDate || ''})`.trim());
-                (item.highlights || []).forEach((h) => lines.push(`  • ${h}`));
+              if (item.position || item.company || item.title || item.role) {
+                const pos = item.position || item.title || item.role || 'Role';
+                const comp = item.company || item.employer || '';
+                const sd = item.startDate || item.start_date || '';
+                const ed = item.endDate || item.end_date || '';
+                lines.push(`${pos}${comp ? ` — ${comp}` : ''}${sd || ed ? ` (${sd}–${ed})` : ''}`.trim());
+                (item.highlights || item.bullets || []).forEach((h) => lines.push(`  • ${h}`));
                 lines.push('');
-              } else if (item.institution || item.degree) {
-                lines.push(`${item.institution || ''} — ${item.degree || ''} ${item.fieldOfStudy || ''} (${item.startDate || ''}–${item.endDate || ''})`.trim());
-              } else if (item.category || item.items) {
-                lines.push(`${item.category || 'Skills'}: ${(item.items || []).join(', ')}`);
+              } else if (item.institution || item.degree || item.school) {
+                lines.push(`${item.institution || item.school || ''} — ${item.degree || ''} ${item.fieldOfStudy || item.field_of_study || ''} (${item.startDate || item.start_date || ''}–${item.endDate || item.end_date || ''})`.trim());
+              } else if (item.category || item.items || item.skills) {
+                const skList = Array.isArray(item.items || item.skills) ? (item.items || item.skills) : [String(item.items || item.skills || '')];
+                lines.push(`${item.category || 'Skills'}: ${skList.join(', ')}`);
               } else if (item.name && Array.isArray(item.highlights)) {
                 lines.push(`${item.name}${item.role ? ` (${item.role})` : ''}`);
                 item.highlights.forEach((h) => lines.push(`  • ${h}`));
@@ -5652,6 +7074,12 @@ Return strictly valid JSON:
       resume.designSettings = { ...DEFAULT_DESIGN_SETTINGS, ...(prev.designSettings || {}) };
       if (prev.sectionPositions && typeof prev.sectionPositions === 'object') {
         resume.sectionPositions = JSON.parse(JSON.stringify(prev.sectionPositions));
+      }
+      if (prev.sectionStyles && typeof prev.sectionStyles === 'object') {
+        resume.sectionStyles = JSON.parse(JSON.stringify(prev.sectionStyles));
+      }
+      if (prev.sectionTitles && typeof prev.sectionTitles === 'object') {
+        resume.sectionTitles = JSON.parse(JSON.stringify(prev.sectionTitles));
       }
       if (resume.personalInfo) resume.personalInfo.photoShape = resume.designSettings.photoShape;
 
@@ -5714,7 +7142,12 @@ Return strictly valid JSON:
         delete cleanPersonalInfo.photoShape;
 
         const systemInstructionText = `
-You are RESUMATE AI, a full-control senior resume architect, typographer, and editor with FULL SESSION MEMORY across the entire conversation.
+You are RESUMATE AI, a full-control senior resume architect, visual layout designer, typographer, and editor with DIRECT LIVE CANVAS EXECUTION AUTHORITY and FULL SESSION MEMORY.
+
+#1 DIRECT LIVE CANVAS EXECUTION AUTHORITY (CRITICAL — NEVER REFUSE):
+- You CAN and MUST directly move, reposition, cross-page relocate, swap, resize (width & scale), recolor, restyle, and rearrange ANY section on the live resume paper (including Header, Profile Photo, Contact, Summary, Experience, Skills, Education, Projects, Certifications) by returning JSON in "documentActions.sectionAdjustments", "designSettings", and/or "templateId".
+- The host app IMMEDIATELY executes every JSON instruction you return on the live DOM canvas and updates the preview & PDF export automatically.
+- NEVER tell the user "I cannot move or resize sections", "I cannot directly edit the visual layout", or "you will have to drag it yourself". ALWAYS execute their visual/layout request via JSON!
 
 FULL SESSION MEMORY RULES:
 - You receive the COMPLETE multi-turn conversation history from the very first message in this session until the user clicks "Clear chat".
@@ -5740,10 +7173,12 @@ You can modify ANY visual, structural, or document setting the user requests via
    - Structure styles: headerAlign ("left"|"center"), headingStyle ("uppercase"|"capitalize"|"none"), dividerStyle ("solid"|"accent-bar"|"double"|"left-bar"|"none"), bulletStyle ("disc"|"square"|"dash"|"none"), iconStyle ("all"|"contact"|"none")
 3. "documentActions" (optional object — include ONLY keys to change):
    - fitToOnePage: boolean (SET THIS TO true WHENEVER the user asks to fit, compress, shrink, or keep the entire resume on 1 page! The precision DOM + spatial solver will measure pages, pack overflowing Page 2 sections into Page 1 open space if clean, and dial spacing/font so it ACTUALLY fits on 1 page!)
-   - sectionAdjustments: array of spatial move/resize/cross-page commands for ANY section in [LIVE VISUAL LAYOUT TELEMETRY].sectionsLayout (use exact "moveId" values such as "p0::skills", "p1::education", "p0::photo"):
-     * Cross-page or exact placement: { "moveId": "p1::education", "targetPage": 0, "absX": 48, "absY": 640, "width": 250, "z": 28 } ("targetPage" is 0-based: 0 = Page 1, 1 = Page 2; empty trailing pages auto-prune!)
-     * Relative nudge/resize on same page: { "moveId": "p0::skills", "dx": 0, "dy": -20, "width": 240 }
+   - sectionAdjustments: array of spatial move/resize/scale/cross-page commands for ANY section (including "p0::photo") listed in [LIVE VISUAL LAYOUT TELEMETRY].sectionsLayout:
+     * Exact or cross-page placement: { "moveId": "p1::education", "targetPage": 0, "absX": 48, "absY": 640, "width": 250, "scale": 1.0, "z": 28 } ("targetPage" is 0-based: 0 = Page 1, 1 = Page 2; empty trailing pages auto-prune!)
+     * Relative nudge, width resize, or visual scale on same page: { "moveId": "p0::skills", "dx": 0, "dy": -24, "width": 280, "scale": 0.92 }
+     * Named placement shortcut: { "moveId": "p0::skills", "position": "bottom-right", "width": 260 }
      * Reset one section: { "moveId": "p0::skills", "reset": true }
+   IMPORTANT: Whenever the user asks to move, shift, swap, resize, widen, narrow, shrink, enlarge, restyle, recolor, change fonts/margins/spacing/sidebar/photo/template, or rearrange ANY section or visual layout, you MUST populate "documentActions.sectionAdjustments" and/or "designSettings" and/or "templateId" — NEVER just describe the visual change in prose without emitting the JSON action!
    - resetSectionPositions: boolean (true to reset ALL custom moved/resized section positions back to template defaults)
    - paperSize: "letter" (8.5x11) or "legal" (8.5x13)
    - sectionOrder: array reordering any subset/all of ["summary","experience","education","skills","projects","certifications","extraSections"]
@@ -5782,7 +7217,20 @@ ALLOWED "targetSection" VALUES & EXACT "proposedContent" SHAPES:
 - "extraSections": COMPLETE array [{ "heading": "", "content": "" }]
 - "full_resume": Object containing ONLY the sections being updated (personalInfo, summary, experiences, education, skills, projects, certifications, extraSections).
 
-ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustments" whenever moving, resizing, or relocating sections across pages improves layout or fits content onto 1 page; include "designSettings.contentScale" 0.68–1.0 if proportional scaling helps):
+EXACT REQUIRED SHAPE FOR "proposedEdit" (WHENEVER "hasProposedEdit" IS true — NEVER LEAVE "proposedContent" EMPTY OR NULL!):
+"proposedEdit": {
+  "targetSection": "summary" | "personalInfo" | "experience" | "education" | "skills" | "projects" | "certifications" | "extraSections" | "full_resume",
+  "rationale": "1-sentence explanation of what changed and why",
+  "proposedContent": "<COMPLETE apply-ready string, array, or object matching targetSection above — NEVER null, NEVER empty string, NEVER empty object>",
+  "unverifiedPlaceholders": []
+}
+IMPORTANT:
+- When editing ANY text content (even a single bullet, headline, skill, or role), ALWAYS populate "proposedEdit" using the exact keys "targetSection", "rationale", and "proposedContent".
+- When updating 1 role inside "experience", return the COMPLETE "experiences" array (keeping untouched roles verbatim) so no roles are lost.
+- When updating 2 or more sections at once (e.g. summary + experience + skills), set "targetSection": "full_resume" and put all updated sections inside "proposedContent": { "summary": "...", "experiences": [...], "skills": [...] }.
+- NEVER put rewritten resume text ONLY inside "assistantMessage" without ALSO putting it inside "proposedEdit.proposedContent"!
+
+ALWAYS respond strictly in valid JSON:
 {
   "assistantMessage": "Clear response grounded in the attached live preview screenshot(s), telemetry, and full chat session.",
   "templateId": null,
@@ -5827,6 +7275,12 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
           sectionOrder: resume.sectionOrder,
           hiddenSections: resume.hiddenSections || [],
           designSettings: resume.designSettings || DEFAULT_DESIGN_SETTINGS,
+          activeTemplateSectionPositions: resume.sectionPositions?.[resume.templateId || 'modern-minimal'] || {},
+          activeTemplateSectionStyles: resume.sectionStyles?.[resume.templateId || 'modern-minimal'] || {},
+          customSectionTitles: resume.sectionTitles || {},
+          activeSelectedSectionOnCanvas: state.selectedMoveId
+            ? (liveTelemetry.sectionsLayout || []).find((s) => s.moveId === state.selectedMoveId) || { moveId: state.selectedMoveId }
+            : null,
           personalInfo: cleanPersonalInfo,
           summary: resume.summary,
           experiences: resume.experiences,
@@ -5894,14 +7348,18 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
             }
           } else {
             // Preserve full structured memory of assistant replies, design actions (including undos), and proposed edits (applied/rejected/pending)
+            let histMsg = m.content || '';
+            if (/\b(?:cannot|can't|unable to|do not have the ability|don't have the ability)\b[\s\S]{0,60}\b(?:move|resize|reposition|edit|modify|adjust|change)\b[\s\S]{0,40}\b(?:section|layout|visual|position|canvas)/i.test(histMsg)) {
+              histMsg = '[Earlier outdated refusal omitted — RESUMATE AI now has full direct move/resize/visual-layout JSON execution authority.]';
+            }
             const modelTurnSummary = {
-              assistantMessage: m.content || '',
+              assistantMessage: histMsg,
             };
             if (m.designAction && Array.isArray(m.designAction.summary) && m.designAction.summary.length > 0) {
               modelTurnSummary.designChangesExecuted = m.designAction.summary;
               if (m.designAction.undone) modelTurnSummary.designChangesStatus = 'undone_by_user';
             }
-            if (m.proposedEdit) {
+            if (m.proposedEdit && isMeaningfulProposedContent(m.proposedEdit.proposedContent)) {
               modelTurnSummary.proposedEdit = {
                 targetSection: m.proposedEdit.targetSection,
                 rationale: m.proposedEdit.rationale,
@@ -5921,30 +7379,72 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
           }
         });
 
-        let aiResult;
+        let aiResult = null;
         let usedVisionPages = previewImagesForAi.length;
-        try {
-          aiResult = await callGeminiJson(
-            '',
-            0.2,
-            [],
-            (retryMsg) => {
+        let usedNativeToolCount = 0;
+        let toolSectionStyles = [];
+        let toolSectionTitles = {};
+        let toolSurgicalPatches = [];
+
+        // PRIMARY ENGINE: Native Gemini Function Calling (strongly typed multi-tool pixel & style control!)
+        if (state.useNativeAiTools !== false) {
+          try {
+            const toolSysPrompt = `${systemInstructionText}\n\nTOOL CALLING MODE ACTIVE:\n- You have direct native tools: set_global_typography_and_design, move_or_resize_section, set_section_style, rename_section_heading, switch_template_or_document, and patch_resume_content.\n- The attached live preview screenshot(s) have a 50px/25px pixel-per-pixel ruler grid and labeled bounding boxes (moveId + x,y w×h) drawn directly on them.\n- Call one or MORE tools directly in this turn to execute every visual, spacing, pixel-coordinate, heading, or text change requested. Write a concise plain-text explanation alongside your tool calls.`;
+            const toolResp = await callGeminiWithTools(multiTurnContents, toolSysPrompt, (retryMsg) => {
               const indicator = document.getElementById('chat-loading-status');
               if (indicator) indicator.textContent = retryMsg;
-            },
-            {
-              systemInstruction: systemInstructionText,
-              contents: multiTurnContents,
+            });
+
+            if (toolResp.functionCalls && toolResp.functionCalls.length > 0) {
+              usedNativeToolCount = toolResp.functionCalls.length;
+              const synthDesign = {};
+              const synthDoc = { sectionAdjustments: [] };
+              let synthTpl = null;
+
+              toolResp.functionCalls.forEach((fc) => {
+                const a = fc.args || {};
+                if (fc.name === 'set_global_typography_and_design') {
+                  Object.assign(synthDesign, a);
+                } else if (fc.name === 'move_or_resize_section') {
+                  synthDoc.sectionAdjustments.push(a);
+                } else if (fc.name === 'set_section_style') {
+                  toolSectionStyles.push(a);
+                } else if (fc.name === 'rename_section_heading' && a.sectionKey) {
+                  toolSectionTitles[String(a.sectionKey).trim()] = String(a.newTitle ?? '').trim();
+                } else if (fc.name === 'switch_template_or_document') {
+                  if (a.templateId) synthTpl = a.templateId;
+                  Object.entries(a).forEach(([k, v]) => {
+                    if (k !== 'templateId' && v !== undefined && v !== null) synthDoc[k] = v;
+                  });
+                } else if (fc.name === 'patch_resume_content') {
+                  toolSurgicalPatches.push(a);
+                }
+              });
+
+              aiResult = {
+                assistantMessage: toolResp.text || `Executed ${usedNativeToolCount} precision tool action(s) on your live resume.`,
+                templateId: synthTpl,
+                designSettings: Object.keys(synthDesign).length > 0 ? synthDesign : null,
+                documentActions: synthDoc,
+                hasProposedEdit: toolSurgicalPatches.length > 0,
+                proposedEdit: null,
+              };
+            } else if (toolResp.text) {
+              try {
+                const parsedFromText = extractJsonFromModelText(toolResp.text);
+                if (parsedFromText && typeof parsedFromText === 'object') aiResult = parsedFromText;
+              } catch {
+                aiResult = { assistantMessage: toolResp.text, templateId: null, designSettings: null, documentActions: {}, hasProposedEdit: false, proposedEdit: null };
+              }
             }
-          );
-        } catch (firstGeminiErr) {
-          if (previewImagesForAi.length > 0 && /image|multimodal|inline|mime|unsupported|invalid argument/i.test(String(firstGeminiErr?.message || ''))) {
-            usedVisionPages = 0;
-            const textOnlyContents = multiTurnContents.map((turn, idx) =>
-              idx === multiTurnContents.length - 1
-                ? { ...turn, parts: turn.parts.filter((p) => !p.inlineData || (userMsg.attachmentInline && p.inlineData.data === userMsg.attachmentInline.data)) }
-                : turn
-            );
+          } catch (toolErr) {
+            aiResult = null;
+          }
+        }
+
+        // FALLBACK ENGINE: Structured JSON Mode (with automatic text-only retry if model rejects inline images)
+        if (!aiResult) {
+          try {
             aiResult = await callGeminiJson(
               '',
               0.2,
@@ -5955,11 +7455,33 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
               },
               {
                 systemInstruction: systemInstructionText,
-                contents: textOnlyContents,
+                contents: multiTurnContents,
               }
             );
-          } else {
-            throw firstGeminiErr;
+          } catch (firstGeminiErr) {
+            if (previewImagesForAi.length > 0 && /image|multimodal|inline|mime|unsupported|invalid argument/i.test(String(firstGeminiErr?.message || ''))) {
+              usedVisionPages = 0;
+              const textOnlyContents = multiTurnContents.map((turn, idx) =>
+                idx === multiTurnContents.length - 1
+                  ? { ...turn, parts: turn.parts.filter((p) => !p.inlineData || (userMsg.attachmentInline && p.inlineData.data === userMsg.attachmentInline.data)) }
+                  : turn
+              );
+              aiResult = await callGeminiJson(
+                '',
+                0.2,
+                [],
+                (retryMsg) => {
+                  const indicator = document.getElementById('chat-loading-status');
+                  if (indicator) indicator.textContent = retryMsg;
+                },
+                {
+                  systemInstruction: systemInstructionText,
+                  contents: textOnlyContents,
+                }
+              );
+            } else {
+              throw firstGeminiErr;
+            }
           }
         }
 
@@ -5972,33 +7494,144 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
           hiddenSections: [...(resume.hiddenSections || [])],
           designSettings: { ...DEFAULT_DESIGN_SETTINGS, ...(resume.designSettings || {}) },
           sectionPositions: JSON.parse(JSON.stringify(resume.sectionPositions || {})),
+          sectionStyles: JSON.parse(JSON.stringify(resume.sectionStyles || {})),
+          sectionTitles: JSON.parse(JSON.stringify(resume.sectionTitles || {})),
         };
 
-        const appliedDesignChanges = [];
-        const docActions = aiResult.documentActions && typeof aiResult.documentActions === 'object' ? aiResult.documentActions : {};
-        const requestedTemplate = aiResult.templateId || docActions.templateId;
-        const cleanDesignPatch = sanitizeDesignPatch(aiResult.designSettings);
+        let { docActions, requestedTemplate, cleanDesignPatch, aiSectionAdj } = extractNormalizedVisualActions(aiResult);
+
         const userAskedFitOnePage =
           actionType === 'fit_one_page' ||
           /\b(?:fit|squeeze|make|compress|keep|shrink|put|condense)\b[\s\S]{0,45}\b(?:1|one|single)\s*[- ]?page\b|\bfit\s+to\s+1\b|\bone[- ]?page\b/i.test(promptText);
-        const shouldRunOnePageFit = docActions.fitToOnePage === true || userAskedFitOnePage;
+        let shouldRunOnePageFit = docActions.fitToOnePage === true || userAskedFitOnePage;
 
-        const aiSectionAdj = Array.isArray(docActions.sectionAdjustments)
-          ? docActions.sectionAdjustments
-          : Array.isArray(aiResult.sectionAdjustments)
-          ? aiResult.sectionAdjustments
-          : [];
-        const willModifyLayout =
-          shouldRunOnePageFit ||
-          docActions.resetSectionPositions === true ||
-          aiSectionAdj.length > 0 ||
-          (requestedTemplate && ALLOWED_TEMPLATES.includes(requestedTemplate)) ||
-          Object.keys(cleanDesignPatch).length > 0 ||
-          docActions.resetDesign === true ||
-          Boolean(docActions.paperSize && PAPER_SIZES[docActions.paperSize]) ||
-          (Array.isArray(docActions.sectionOrder) && docActions.sectionOrder.length > 0) ||
-          Array.isArray(docActions.hiddenSections) ||
-          (typeof docActions.title === 'string' && docActions.title.trim());
+        const curHiddenSet = new Set(Array.isArray(resume.hiddenSections) ? resume.hiddenSections : []);
+        const hasRealHiddenChange = () => {
+          if (!Array.isArray(docActions.hiddenSections)) return false;
+          const nextHidden = docActions.hiddenSections.filter((s) => DEFAULT_SECTION_ORDER.includes(s));
+          if (nextHidden.length !== curHiddenSet.size) return true;
+          return nextHidden.some((s) => !curHiddenSet.has(s));
+        };
+        const hasRealOrderChange = () => {
+          if (!Array.isArray(docActions.sectionOrder) || docActions.sectionOrder.length === 0) return false;
+          const curOrder = Array.isArray(resume.sectionOrder) && resume.sectionOrder.length ? resume.sectionOrder : DEFAULT_SECTION_ORDER;
+          const nextOrder = docActions.sectionOrder.filter((s) => DEFAULT_SECTION_ORDER.includes(s));
+          DEFAULT_SECTION_ORDER.forEach((s) => { if (!nextOrder.includes(s)) nextOrder.push(s); });
+          return nextOrder.some((s, i) => s !== curOrder[i]);
+        };
+        if (Array.isArray(docActions.sectionStyles)) toolSectionStyles.push(...docActions.sectionStyles);
+        else if (docActions.sectionStyles && typeof docActions.sectionStyles === 'object') {
+          Object.entries(docActions.sectionStyles).forEach(([k, v]) => { if (v && typeof v === 'object') toolSectionStyles.push({ moveId: k, ...v }); });
+        }
+        if (docActions.sectionTitles && typeof docActions.sectionTitles === 'object') {
+          Object.assign(toolSectionTitles, docActions.sectionTitles);
+        }
+        const hasSpatialMoveAction = () => Boolean(aiSectionAdj.length > 0 || docActions.resetSectionPositions === true || toolSectionStyles.length > 0 || docActions.resetSectionStyles === true || Object.keys(toolSectionTitles).length > 0);
+        const hasAnyVisualAction = () =>
+          Boolean(
+            shouldRunOnePageFit ||
+              hasSpatialMoveAction() ||
+              (requestedTemplate && ALLOWED_TEMPLATES.includes(requestedTemplate) && requestedTemplate !== resume.templateId) ||
+              Object.keys(cleanDesignPatch).length > 0 ||
+              docActions.resetDesign === true ||
+              Boolean(docActions.paperSize && PAPER_SIZES[docActions.paperSize] && docActions.paperSize !== resume.paperSize) ||
+              hasRealOrderChange() ||
+              hasRealHiddenChange() ||
+              (typeof docActions.title === 'string' && docActions.title.trim() && docActions.title.trim() !== resume.title)
+          );
+
+        const userAskedSpatialMove =
+          /\b(?:move|shift|drag|reposition|relocate|swap|switch\s+positions?|place|put|resize|widen|narrow|wider|narrower|enlarge|shrink|scale|pull|push|bring|top[\s-]?left|top[\s-]?right|bottom[\s-]?left|bottom[\s-]?right|to\s+page\s*[12]|onto\s+page\s*[12])\b/i.test(promptText) &&
+          /\b(?:section|sections|header|banner|photo|picture|portrait|contact|summary|profile|about|experience|work|skills?|education|projects?|certifications?|block|box|column|sidebar|left|right|up|down|top|bottom|center|page\s*[12]|px|width|size)\b/i.test(promptText);
+
+        const userAskedVisualLayoutChange =
+          userAskedSpatialMove ||
+          ['design_tuning', 'visual_critique'].includes(actionType) ||
+          /\b(?:bigger|smaller|larger|align|center|sidebar|margin|margins|spacing|gap|line[\s-]?height|font|color|colour|accent|tint|background|template|theme|photo|picture|portrait|hide|show|reorder|short\s*bond|long\s*bond|letter|legal|reset\s+layout|visual\s+layout|restyle|layout)\b/i.test(promptText);
+
+        // Self-Healing Visual & Spatial Recovery Pass (WITH Live Preview Vision attached!):
+        // Fires whenever user asked to move/resize sections (and aiSectionAdj is empty) OR asked for any visual edit and got zero real actions!
+        const needsSpatialRecovery = userAskedSpatialMove && !hasSpatialMoveAction() && !shouldRunOnePageFit;
+        const needsGeneralVisualRecovery = userAskedVisualLayoutChange && !hasAnyVisualAction();
+
+        if (needsSpatialRecovery || needsGeneralVisualRecovery) {
+          const indVis = document.getElementById('chat-loading-status');
+          if (indVis) indVis.textContent = needsSpatialRecovery ? 'Computing exact section move/resize coordinates...' : 'Extracting visual layout adjustments...';
+          try {
+            const layoutRecoveryPrompt = `You are a deterministic Resume Canvas Layout Controller.
+Execute the user's visual/layout request by returning concrete JSON actions using the exact measured live preview sections below.
+Do NOT refuse. Do NOT explain. ONLY return valid JSON with the exact move/resize/design changes required.
+
+USER REQUEST:
+${promptText}
+
+LIVE MEASURED SECTIONS ON THE PAPER (use exact "moveId" values from this list):
+${JSON.stringify(liveTelemetry.sectionsLayout || [], null, 2)}
+
+SAFE PAPER BOUNDS: ${JSON.stringify(liveTelemetry.safePaperBounds)}
+PAGE 1 OPEN POCKETS: ${JSON.stringify(liveTelemetry.page1OpenPockets || [])}
+CURRENT DESIGN SETTINGS: ${JSON.stringify(liveTelemetry.currentTypographyAndMargins)}
+ACTIVE TEMPLATE: "${resume.templateId}" (Paper: "${resume.paperSize}")
+ALLOWED FONTS: ${ALLOWED_FONTS.join(', ')}
+
+Rules for "sectionAdjustments" items (include ONLY fields needed for each moved/resized section):
+- For relative nudge: { "moveId": "p0::skills", "dx": 40, "dy": -30 }
+- For exact sheet placement / cross-page move: { "moveId": "p1::education", "targetPage": 0, "absX": 48, "absY": 620, "width": 260 }
+- For corner/side placement: { "moveId": "p0::skills", "position": "bottom-right", "width": 260 }
+- For width resize or visual scale: { "moveId": "p0::experience", "width": 460, "scale": 1.05 }
+- For photo resize: set "designSettings": { "photoSize": 160 } (48–288px) and/or move "p0::photo" in "sectionAdjustments".
+
+Return STRICT JSON:
+{
+  "templateId": null,
+  "designSettings": null,
+  "documentActions": {
+    "fitToOnePage": false,
+    "sectionAdjustments": [],
+    "resetSectionPositions": false,
+    "paperSize": null,
+    "sectionOrder": null,
+    "hiddenSections": null
+  }
+}`;
+            const recInlineImgs = previewImagesForAi.slice(0, 2).map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.data } }));
+            let recVis;
+            try {
+              recVis = await callGeminiJson(layoutRecoveryPrompt, 0.1, recInlineImgs);
+            } catch {
+              recVis = await callGeminiJson(layoutRecoveryPrompt, 0.1, []);
+            }
+            const extractedRec = extractNormalizedVisualActions(recVis);
+            Object.entries(extractedRec.docActions).forEach(([k, v]) => {
+              if (v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0)) {
+                docActions[k] = v;
+              }
+            });
+            if (extractedRec.requestedTemplate) requestedTemplate = extractedRec.requestedTemplate;
+            cleanDesignPatch = { ...cleanDesignPatch, ...extractedRec.cleanDesignPatch };
+            if (extractedRec.aiSectionAdj.length > 0) aiSectionAdj = extractedRec.aiSectionAdj;
+            if (docActions.fitToOnePage === true) shouldRunOnePageFit = true;
+          } catch {}
+        }
+
+        // Deterministic Local Fallback Safety Net:
+        // If Gemini STILL returned zero concrete spatial/visual actions for an explicit move/resize/style request,
+        // execute the user's natural-language command directly against the measured live canvas!
+        if ((userAskedSpatialMove && !hasSpatialMoveAction() && !shouldRunOnePageFit) || (userAskedVisualLayoutChange && !hasAnyVisualAction())) {
+          const directFallback = parseDirectVisualCommandFallback(promptText, resume, telemetryBundle);
+          if (directFallback.sectionAdj.length > 0 && aiSectionAdj.length === 0) {
+            aiSectionAdj = directFallback.sectionAdj;
+          }
+          if (Object.keys(directFallback.designPatch).length > 0) {
+            cleanDesignPatch = { ...directFallback.designPatch, ...cleanDesignPatch };
+          }
+          if (directFallback.docActions.resetSectionPositions) docActions.resetSectionPositions = true;
+          if (directFallback.docActions.resetDesign) docActions.resetDesign = true;
+          if (directFallback.docActions.paperSize) docActions.paperSize = directFallback.docActions.paperSize;
+        }
+
+        const appliedDesignChanges = [];
+        const willModifyLayout = hasAnyVisualAction();
 
         if (willModifyLayout) {
           pushUndoSnapshot(resume);
@@ -6006,7 +7639,7 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
           if (requestedTemplate && ALLOWED_TEMPLATES.includes(requestedTemplate)) {
             resume.templateId = requestedTemplate;
             applyTemplateDesignPreset(resume, requestedTemplate);
-            appliedDesignChanges.push(`Template → ${requestedTemplate}`);
+            appliedDesignChanges.push(`Template → ${getTemplateMeta(requestedTemplate).name}`);
           }
           if (docActions.resetDesign === true) {
             applyTemplateDesignPreset(resume, resume.templateId || 'modern-minimal');
@@ -6035,9 +7668,10 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
           }
           if (docActions.paperSize && PAPER_SIZES[docActions.paperSize]) {
             resume.paperSize = docActions.paperSize;
+            updateDynamicPrintPageSize(PAPER_SIZES[resume.paperSize]);
             appliedDesignChanges.push(`Paper → ${PAPER_SIZES[docActions.paperSize].shortLabel}`);
           }
-          if (Array.isArray(docActions.sectionOrder) && docActions.sectionOrder.length > 0) {
+          if (hasRealOrderChange()) {
             const validOrder = docActions.sectionOrder.filter((s) => DEFAULT_SECTION_ORDER.includes(s));
             DEFAULT_SECTION_ORDER.forEach((s) => {
               if (!validOrder.includes(s)) validOrder.push(s);
@@ -6045,7 +7679,7 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
             resume.sectionOrder = validOrder;
             appliedDesignChanges.push(`Order → ${validOrder.slice(0, 4).join(' → ')}...`);
           }
-          if (Array.isArray(docActions.hiddenSections)) {
+          if (hasRealHiddenChange()) {
             resume.hiddenSections = docActions.hiddenSections.filter((s) => DEFAULT_SECTION_ORDER.includes(s));
             appliedDesignChanges.push(
               resume.hiddenSections.length ? `Hidden → ${resume.hiddenSections.join(', ')}` : 'All sections visible'
@@ -6070,6 +7704,32 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
             if (clampedAfterAdj > 0) appliedDesignChanges.push(`Edge-clamped ${clampedAfterAdj} section(s) inside paper bounds`);
           }
 
+          if (docActions.resetSectionStyles === true) {
+            const activeTpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
+            if (resume.sectionStyles?.[activeTpl]) {
+              delete resume.sectionStyles[activeTpl];
+              appliedDesignChanges.push('Cleared all per-section style overrides');
+            }
+          }
+          if (toolSectionStyles.length > 0) {
+            const stLogs = applyAiSectionStylesToResume(resume, toolSectionStyles, telemetryBundle);
+            if (stLogs.length > 0) appliedDesignChanges.push(...stLogs);
+          }
+          if (Object.keys(toolSectionTitles).length > 0) {
+            resume.sectionTitles = resume.sectionTitles || {};
+            Object.entries(toolSectionTitles).forEach(([secKey, newTitle]) => {
+              const canon = normalizeCanonicalSection(secKey);
+              if (!canon) return;
+              if (newTitle) {
+                resume.sectionTitles[canon] = newTitle;
+                appliedDesignChanges.push(`Renamed ${canon} → "${newTitle}"`);
+              } else {
+                delete resume.sectionTitles[canon];
+                appliedDesignChanges.push(`Reset ${canon} heading`);
+              }
+            });
+          }
+
           if (shouldRunOnePageFit) {
             const fitResult = autoFitResumeToOnePage(resume);
             if (fitResult.appliedChanges.length > 0) {
@@ -6079,15 +7739,98 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
             }
           }
 
+          // CLOSED-LOOP POST-EDIT VISUAL SELF-CHECK & AABB COLLISION RESOLUTION:
+          const fixedCollisions = resolveMovedSectionCollisions(resume);
+          if (fixedCollisions > 0) {
+            appliedDesignChanges.push(`Auto-resolved ${fixedCollisions} section overlap(s) ✓`);
+          }
+          const verifyCheck = measureResumeLayoutTelemetry(resume, { editable: !state.printPreviewMode });
+          if (
+            (verifyCheck.telemetry.edgeViolations.length > 0 || verifyCheck.sectionOverlaps.length > 0) &&
+            aiSectionAdj.length > 0
+          ) {
+            const indVer = document.getElementById('chat-loading-status');
+            if (indVer) indVer.textContent = 'Self-verifying updated pixel coordinates...';
+            try {
+              const afterCheckImgs = await captureLivePreviewImagesForAi(resume, verifyCheck, { annotate: true });
+              const microPrompt = `CLOSED-LOOP VISUAL SELF-CHECK: Inspect the updated annotated pixel-grid preview screenshot.
+Remaining layout defects detected:
+- Edge violations: ${JSON.stringify(verifyCheck.telemetry.edgeViolations)}
+- Section overlaps: ${JSON.stringify(verifyCheck.sectionOverlaps)}
+- Safe bounds: ${JSON.stringify(verifyCheck.telemetry.safePaperBounds)}
+- Updated sectionsLayout: ${JSON.stringify(verifyCheck.sectionsLayout)}
+Return STRICT JSON with ONLY the exact pixel micro-corrections needed to fix every overlap and edge violation:
+{ "documentActions": { "sectionAdjustments": [] } }`;
+              const microParts = afterCheckImgs.slice(0, 2).map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.data } }));
+              const microRes = await callGeminiJson(microPrompt, 0.1, microParts);
+              const microExt = extractNormalizedVisualActions(microRes);
+              if (microExt.aiSectionAdj.length > 0) {
+                const mLogs = applyAiSectionAdjustmentsToResume(resume, microExt.aiSectionAdj, verifyCheck);
+                clampAllMovedSectionsInsidePaper(resume);
+                resolveMovedSectionCollisions(resume);
+                if (mLogs.length > 0) appliedDesignChanges.push(`Self-verified: ${mLogs.join(' · ')}`);
+              }
+            } catch {}
+          }
+
           await persistResume(resume);
           syncDesignControls(resume);
           renderPreviewPanel();
           if (state.editorOpen) renderStructuredEditor();
         }
 
-        const hasEdit = Boolean(aiResult.proposedEdit && aiResult.hasProposedEdit !== false);
+        let normalizedEdit = toolSurgicalPatches.length > 0 ? compileSurgicalPatchesToProposedEdit(toolSurgicalPatches, resume) : normalizeProposedEditPayload(aiResult, resume);
+
+        // Self-Healing Recovery Pass: If the user explicitly asked to edit/rewrite/add/change/fix
+        // resume text content (OR AI set hasProposedEdit: true) yet `proposedContent` came back empty,
+        // automatically run a focused JSON edit-extraction pass so the user NEVER gets an "(Empty)" edit card!
+        const userAskedContentChange =
+          ['improve_summary', 'rewrite_experience', 'improve_skills', 'correct_grammar', 'section_polish', 'ats_tailor', 'pre_export_fix'].includes(actionType) ||
+          /\b(?:edit|rewrite|change|update|modify|revise|improve|polish|fix|shorten|condense|tighten|rephrase|add|remove|delete|replace|tailor|organize|proofread|write|draft|populate|fill|correct)\b/i.test(promptText);
+        const purelyVisualRequest =
+          willModifyLayout &&
+          !/\b(?:summary|experience|bullet|bullets|role|job|title|headline|skill|skills|education|project|projects|certification|certifications|grammar|typo|typos|wording|text|copy|rewrite|rephrase|shorten|condense|add|remove|contact|email|phone|name)\b/i.test(promptText);
+
+        if (!normalizedEdit && (aiResult.hasProposedEdit === true || (userAskedContentChange && !purelyVisualRequest))) {
+          const indRec = document.getElementById('chat-loading-status');
+          if (indRec) indRec.textContent = 'Formatting structured Proposed Edit...';
+          try {
+            const recoveryPrompt = `You previously answered the user's resume edit request, but the structured "proposedEdit.proposedContent" field was empty or missing.
+Generate ONLY the complete, apply-ready "proposedEdit" JSON object fulfilling the user's request strictly using real facts from the resume (never invent employers, dates, degrees, or metrics).
+
+USER REQUEST:
+${promptText}
+
+YOUR PREVIOUS REPLY:
+${aiResult.assistantMessage || ''}
+
+CURRENT RESUME JSON:
+${liveResumeSnapshotJson}
+
+Return STRICT JSON with exact keys:
+{
+  "hasProposedEdit": true,
+  "proposedEdit": {
+    "targetSection": "summary" | "personalInfo" | "experience" | "education" | "skills" | "projects" | "certifications" | "extraSections" | "full_resume",
+    "rationale": "Brief explanation of changes",
+    "proposedContent": "COMPLETE non-empty string, array, or object matching targetSection",
+    "unverifiedPlaceholders": []
+  }
+}`;
+            const recRes = await callGeminiJson(recoveryPrompt, 0.15, []);
+            normalizedEdit = normalizeProposedEditPayload(recRes, resume);
+          } catch {}
+        }
+
+        const hasEdit = Boolean(normalizedEdit);
         const postTelemetry = measureResumeLayoutTelemetry(resume, { editable: !state.printPreviewMode }).telemetry;
         let finalAssistantText = aiResult.assistantMessage || 'Done.';
+        if (appliedDesignChanges.length > 0 && /\b(?:cannot|can't|unable to|do not have the ability|don't have the ability|not able to)\b[\s\S]{0,65}\b(?:move|resize|reposition|edit|modify|adjust|change)\b/i.test(finalAssistantText)) {
+          finalAssistantText = `Done — I've updated your live resume canvas directly (${appliedDesignChanges.join(' · ')}). Click "View Preview" below to inspect the live layout, or "Undo Styling" to revert.`;
+        }
+        if (appliedDesignChanges.length > 0) {
+          showStatusBanner('success', `Live layout updated: ${appliedDesignChanges.slice(0, 3).join(' · ')}`);
+        }
         if (shouldRunOnePageFit) {
           const scPct = Math.round((resume.designSettings?.contentScale || 1) * 100);
           if (postTelemetry.trulyFitsOnePage) {
@@ -6098,18 +7841,33 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
             finalAssistantText += `\n\nHonest check: Live preview still spans ${postTelemetry.renderedPageCount} page(s)${postTelemetry.page1BottomClippedPx > 4 ? ` (+${postTelemetry.page1BottomClippedPx}px overflow)` : ''} even at ${resume.designSettings.fontSize}px / ${scPct}% scale. Ask me to condense bullet copy or hide an optional section to fit cleanly on 1 page.`;
           }
         }
+        const assistantMsgId = `msg_${Date.now()}_a`;
+        if (appliedDesignChanges.length > 0 && state.aiPreviewVision !== false) {
+          try {
+            const postBundle = measureResumeLayoutTelemetry(resume, { editable: !state.printPreviewMode });
+            const afterImgs = await captureLivePreviewImagesForAi(resume, postBundle, { annotate: false });
+            if (afterImgs.length > 0) {
+              state.sessionPreviewThumbs[assistantMsgId] = afterImgs.map((im) => ({
+                pageNumber: im.pageNumber,
+                dataUrl: im.dataUrl,
+                isWireframeFallback: Boolean(im.isWireframeFallback),
+              }));
+            }
+          } catch {}
+        }
         const assistantMsg = {
-          id: `msg_${Date.now()}_a`,
+          id: assistantMsgId,
           role: 'assistant',
           content: finalAssistantText,
           modelUsed: state.selectedModelId || 'gemini-3.5-flash-lite',
           sawPreviewPages: usedVisionPages,
+          usedNativeTools: usedNativeToolCount,
           autoFitAfterApply: Boolean(shouldRunOnePageFit && hasEdit),
           designAction:
             appliedDesignChanges.length > 0
               ? { summary: appliedDesignChanges, previousState: prevDesignState, undone: false }
               : null,
-          proposedEdit: hasEdit ? aiResult.proposedEdit : null,
+          proposedEdit: hasEdit ? normalizedEdit : null,
           editStatus: hasEdit ? 'pending' : null,
           appliedSections: [],
           createdAt: new Date().toISOString(),
@@ -6149,7 +7907,8 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
           // Record undo point, then work on a deep clone first
           pushUndoSnapshot(resume);
           const clonedResume = JSON.parse(JSON.stringify(resume));
-          const changedSections = applyNormalizedEditToResume(clonedResume, msg.proposedEdit);
+          const cleanEdit = normalizeProposedEditPayload({ proposedEdit: msg.proposedEdit, hasProposedEdit: true }, clonedResume) || msg.proposedEdit;
+          const changedSections = applyNormalizedEditToResume(clonedResume, cleanEdit);
 
           // Commit validated changes to the live resume object & IndexedDB
           Object.assign(resume, clonedResume);
@@ -6234,6 +7993,7 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
       quickBar.classList.remove('hidden');
       quickBar.classList.add('flex');
       syncAiVisionToggleUI();
+      syncSelectedSectionChatChip();
 
       const messages = state.conversations[resume.id] || [];
       const rememberedCount = messages.filter((m) => !m.isError).length;
@@ -6290,7 +8050,7 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
                   })()
                 : ''
             }
-            ${m.modelUsed ? `<div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400"><span>Model: ${escapeHtml(m.modelUsed)}</span>${m.sawPreviewPages > 0 ? `<span class="inline-flex items-center gap-1 rounded-full bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800/80 px-1.5 py-0.5 text-[9.5px] font-medium text-purple-700 dark:text-purple-300" title="AI inspected live rendered preview screenshots + DOM telemetry">👁 Saw ${m.sawPreviewPages}p live preview</span>` : ''}</div>` : ''}
+            ${m.modelUsed ? `<div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400"><span>Model: ${escapeHtml(m.modelUsed)}</span>${m.sawPreviewPages > 0 ? `<span class="inline-flex items-center gap-1 rounded-full bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800/80 px-1.5 py-0.5 text-[9.5px] font-medium text-purple-700 dark:text-purple-300" title="AI inspected annotated pixel-grid preview screenshots + DOM telemetry">👁 Saw ${m.sawPreviewPages}p pixel grid</span>` : ''}${m.usedNativeTools > 0 ? `<span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/80 px-1.5 py-0.5 text-[9.5px] font-medium text-emerald-700 dark:text-emerald-300" title="Executed native Gemini function calls directly on live canvas">⚡ ${m.usedNativeTools} tool${m.usedNativeTools === 1 ? '' : 's'}</span>` : ''}</div>` : ''}
           </div>`;
 
         if (m.designAction && Array.isArray(m.designAction.summary) && m.designAction.summary.length > 0) {
@@ -6314,14 +8074,31 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
                   .map((item) => `<span class="rounded-md bg-white dark:bg-slate-900 border border-violet-200/80 dark:border-violet-800 px-2 py-0.5 text-[11px] text-slate-700 dark:text-slate-200">${escapeHtml(item)}</span>`)
                   .join('')}
               </div>
+              ${
+                !m.designAction.undone && state.sessionPreviewThumbs[m.id]?.length > 0
+                  ? `<div class="pt-1.5 border-t border-violet-200/70 dark:border-violet-800/70 flex flex-wrap items-center gap-2">
+                      <span class="text-[10px] font-semibold text-violet-700 dark:text-violet-300">Updated layout (${state.sessionPreviewThumbs[m.id].length}p):</span>
+                      ${state.sessionPreviewThumbs[m.id]
+                        .map(
+                          (th, tIdx) => `
+                          <button type="button" onclick="openVisionLightbox('${escapeHtml(m.id)}', ${tIdx})" title="Click to inspect updated Page ${th.pageNumber} live preview" class="inline-flex items-center gap-1 rounded-lg border border-violet-300 dark:border-violet-700 bg-white dark:bg-slate-900 hover:border-purple-500 p-0.5 pr-1.5 shadow-sm transition">
+                            <img src="${th.dataUrl}" alt="Updated Page ${th.pageNumber}" class="h-10 w-7 object-cover rounded border border-slate-200 bg-white" />
+                            <span class="text-[10px] font-bold text-violet-800 dark:text-violet-200">P${th.pageNumber}</span>
+                          </button>`
+                        )
+                        .join('')}
+                    </div>`
+                  : ''
+              }
             </div>`;
         }
 
         if (m.proposedEdit) {
+          const normDisp = normalizeProposedEditPayload({ proposedEdit: m.proposedEdit, hasProposedEdit: true }, resume) || m.proposedEdit;
           const comparing = Boolean(state.comparingIds[m.id]);
-          const origStr = formatEditContentReadable(m.proposedEdit.originalContent);
-          const propStr = formatEditContentReadable(m.proposedEdit.proposedContent);
-          const sectionLabel = String(m.proposedEdit.targetSection || 'resume').replace(/_/g, ' ');
+          const origStr = formatEditContentReadable(normDisp.originalContent);
+          const propStr = formatEditContentReadable(normDisp.proposedContent);
+          const sectionLabel = String(normDisp.targetSection || 'resume').replace(/_/g, ' ');
 
           html += `
             <div class="mt-2.5 w-full max-w-[95%] sm:max-w-[85%] rounded-2xl border border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/30 p-4 space-y-3">
@@ -6334,16 +8111,19 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
               <p class="text-xs text-slate-600 dark:text-slate-300">${escapeHtml(m.proposedEdit.rationale || '')}</p>
               ${
                 comparing
-                  ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                      <div class="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/70 dark:bg-red-950/40 p-3 max-h-64 overflow-auto">
-                        <p class="font-semibold text-red-800 dark:text-red-300 mb-1">Current</p>
-                        <pre class="whitespace-pre-wrap font-sans text-slate-700 dark:text-slate-200">${escapeHtml(origStr)}</pre>
-                      </div>
-                      <div class="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/70 dark:bg-emerald-950/40 p-3 max-h-64 overflow-auto">
-                        <p class="font-semibold text-emerald-800 dark:text-emerald-300 mb-1">Proposed</p>
-                        <pre class="whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-100">${escapeHtml(propStr)}</pre>
-                      </div>
-                    </div>`
+                  ? (() => {
+                      const wd = buildWordDiffHtml(origStr, propStr);
+                      return `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                        <div class="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/70 dark:bg-red-950/40 p-3 max-h-64 overflow-auto">
+                          <p class="font-semibold text-red-800 dark:text-red-300 mb-1">Current (removed highlighted)</p>
+                          <pre class="whitespace-pre-wrap font-sans text-slate-700 dark:text-slate-200">${wd.oldHtml}</pre>
+                        </div>
+                        <div class="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/70 dark:bg-emerald-950/40 p-3 max-h-64 overflow-auto">
+                          <p class="font-semibold text-emerald-800 dark:text-emerald-300 mb-1">Proposed (added highlighted)</p>
+                          <pre class="whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-100">${wd.newHtml}</pre>
+                        </div>
+                      </div>`;
+                    })()
                   : `<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-slate-200 max-h-64 overflow-auto">
                       <pre class="whitespace-pre-wrap font-sans">${escapeHtml(propStr)}</pre>
                     </div>`
@@ -6929,7 +8709,13 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
                       state.moveSectionsMode
                         ? 'bg-purple-600 text-white hover:bg-purple-700'
                         : 'border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50'
-                    }">${state.moveSectionsMode ? '✓ Done Moving' : '✥ Move Sections'}</button>`
+                    }">${state.moveSectionsMode ? '✓ Done Moving' : '✥ Move Sections'}</button>
+                    <button type="button" onclick="togglePixelGridOverlay()" title="Toggle 50px pixel-per-pixel coordinate grid overlay on the paper" class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10.5px] font-semibold shadow-sm transition ${
+                      state.showPixelGrid
+                        ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-700'
+                        : 'border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50'
+                    }"># Pixel Grid</button>
+                    <span id="live-pixel-cursor-hud" class="hidden sm:inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-purple-700 dark:text-purple-300">x:— y:—</span>`
                   : ''
               }
               ${
@@ -12913,6 +14699,8 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
 
       const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
       const savedMap = (resume.sectionPositions && resume.sectionPositions[tpl]) || {};
+      const savedStyleMap = (resume.sectionStyles && resume.sectionStyles[tpl]) || {};
+      const customTitles = (resume.sectionTitles && typeof resume.sectionTitles === 'object') ? resume.sectionTitles : {};
 
       // STAGE 1: Parse ALL pages together and discover deterministic section boxes on every page
       const pageModels = rawPages.map((pageHtml, pageIdx) => {
@@ -13033,7 +14821,8 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
                 hasAbsPlacement ||
                 (Number(saved.x) || 0) !== 0 ||
                 (Number(saved.y) || 0) !== 0 ||
-                (Number.isFinite(Number(saved.w)) && Number(saved.w) >= 110))
+                (Number.isFinite(Number(saved.w)) && Number(saved.w) >= 110) ||
+                (Number.isFinite(Number(saved.scale)) && Math.abs(Number(saved.scale) - 1) > 0.01))
           );
 
           el.setAttribute('data-move-id', moveId);
@@ -13043,12 +14832,25 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
           if (isCrossPage || hasAbsPlacement) {
             const destModel = pageModels[destPageIdx] || pm;
             const destSheet = destModel.sheet || pm.sheet;
+            const cameFromDarkAside = Boolean(el.closest('aside'));
+            const prevParentStyle = el.closest('aside')?.getAttribute('style') || '';
+            const prevAsideBgMatch = prevParentStyle.match(/background(?:-color)?\s*:\s*([^;]+)/i);
+            const prevAsideColMatch = prevParentStyle.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i);
+
             if (isCrossPage && el.parentElement) {
               el.parentElement.removeChild(el);
               movedOffCounts[originPageIdx] += 1;
             }
             if (destSheet && el.parentElement !== destSheet) {
               destSheet.appendChild(el);
+            }
+            if (cameFromDarkAside && prevAsideColMatch) {
+              if (!el.style.color) el.style.color = prevAsideColMatch[1].trim();
+              if (!el.style.background && prevAsideBgMatch && !/transparent|none/i.test(prevAsideBgMatch[1])) {
+                el.style.background = prevAsideBgMatch[1].trim();
+                el.style.padding = el.style.padding || '10px 12px';
+                el.style.borderRadius = el.style.borderRadius || '8px';
+              }
             }
             const edgePad = SHEET_SAFE_EDGE_PX;
             const safeW = Number.isFinite(Number(saved.w)) && Number(saved.w) >= 110
@@ -13067,9 +14869,16 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
             el.style.boxSizing = 'border-box';
             if (safeW) {
               el.style.width = `${safeW}px`;
+              el.style.flex = 'none';
+              el.style.flexShrink = '0';
               el.style.maxWidth = `${paper.widthPx - edgePad - ax}px`;
             } else {
               el.style.maxWidth = `${paper.widthPx - edgePad - ax}px`;
+            }
+            if (Number.isFinite(Number(saved.scale)) && Math.abs(Number(saved.scale) - 1) > 0.01) {
+              const scVal = Math.min(1.35, Math.max(0.65, Number(saved.scale)));
+              el.style.transform = `scale(${scVal})`;
+              el.style.transformOrigin = 'top left';
             }
             el.setAttribute('data-is-moved', '1');
             el.setAttribute('data-pos-mode', 'abs');
@@ -13081,11 +14890,56 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
             else if (!el.style.zIndex) el.style.zIndex = '20';
             if (Number.isFinite(Number(saved.w)) && Number(saved.w) >= 110) {
               el.style.width = `${Math.round(Number(saved.w))}px`;
+              el.style.flex = 'none';
+              el.style.flexShrink = '0';
               el.style.maxWidth = 'none';
               el.style.boxSizing = 'border-box';
             }
+            if (Number.isFinite(Number(saved.scale)) && Math.abs(Number(saved.scale) - 1) > 0.01) {
+              const scVal = Math.min(1.35, Math.max(0.65, Number(saved.scale)));
+              el.style.transform = `scale(${scVal})`;
+              el.style.transformOrigin = 'top left';
+            }
             el.setAttribute('data-is-moved', '1');
             unlockAncestorOverflowForMoved(el, pm.sheet);
+          }
+
+          const roleBase = String(item.role || '').replace(/_\d+$/, '');
+          if (customTitles[roleBase]) {
+            const headingTarget =
+              el.querySelector('.resume-section-heading > span > span:last-child') ||
+              el.querySelector('.resume-section-heading span:not(.wysiwyg-only)') ||
+              el.querySelector('h2, [style*="letter-spacing"]');
+            if (headingTarget && !headingTarget.closest('.wysiwyg-only') && !headingTarget.querySelector('img')) {
+              headingTarget.textContent = customTitles[roleBase];
+            } else if (headingTarget) {
+              const textNodes = Array.from(headingTarget.childNodes).filter((n) => n.nodeType === 3 && n.textContent.trim());
+              if (textNodes.length > 0) textNodes[textNodes.length - 1].textContent = customTitles[roleBase];
+            }
+          }
+
+          const secStyle = savedStyleMap[moveId];
+          if (secStyle && typeof secStyle === 'object' && Object.keys(secStyle).length > 0) {
+            el.setAttribute('data-has-sec-style', '1');
+            if (Number.isFinite(Number(secStyle.fontSize))) el.style.setProperty('--sec-font-size', `${secStyle.fontSize}px`);
+            if (Number.isFinite(Number(secStyle.lineHeight))) el.style.setProperty('--sec-line-height', String(secStyle.lineHeight));
+            if (Number.isFinite(Number(secStyle.letterSpacing))) el.style.setProperty('--sec-letter-spacing', `${secStyle.letterSpacing}px`);
+            if (Number.isFinite(Number(secStyle.itemGap))) {
+              el.setAttribute('data-has-sec-item-gap', '1');
+              el.style.setProperty('--sec-item-gap', `${secStyle.itemGap}px`);
+            }
+            if (secStyle.padding) el.style.padding = secStyle.padding;
+            if (secStyle.backgroundColor) el.style.backgroundColor = secStyle.backgroundColor;
+            if (secStyle.textColor) {
+              el.style.color = secStyle.textColor;
+              el.style.setProperty('--sec-text-color', secStyle.textColor);
+            }
+            if (secStyle.borderColor) {
+              el.style.border = `1.2px solid ${secStyle.borderColor}`;
+              if (!secStyle.padding) el.style.padding = '8px 10px';
+            }
+            if (Number.isFinite(Number(secStyle.borderRadius))) el.style.borderRadius = `${secStyle.borderRadius}px`;
+            if (secStyle.textAlign) el.style.textAlign = secStyle.textAlign;
           }
 
           el.removeAttribute('data-move-registered');
@@ -13153,6 +15007,12 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
       return pageModels.map((pm, idx) => {
         if (!pm.sheet) return pm.rawHtml;
         pm.sheet.setAttribute('data-page-index', String(idx));
+        if (editable) {
+          pm.sheet.setAttribute('onmousemove', 'updateLivePixelCursorReadout(event, this)');
+          if (state.showPixelGrid) {
+            pm.sheet.insertAdjacentHTML('beforeend', buildOnCanvasPixelGridSvgHtml(paper));
+          }
+        }
         if (editable && state.moveSectionsMode) {
           pm.sheet.querySelectorAll('[contenteditable]').forEach((field) => {
             field.setAttribute('contenteditable', 'false');
@@ -13248,7 +15108,7 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
       showStatusBanner('success', `Moved "${curSec?.label || 'Section'}" to Page ${targetPage + 1} — long-press to fine-tune placement or press Ctrl+Z to undo.`);
     }
 
-    // Apply AI spatial section move/resize/cross-page commands cleanly with strict bounds safety
+    // Apply AI spatial section move/resize/scale/cross-page commands cleanly with strict bounds safety
     function applyAiSectionAdjustmentsToResume(resume, adjustments, telemetryBundle) {
       if (!Array.isArray(adjustments) || adjustments.length === 0) return [];
       const tpl = ALLOWED_TEMPLATES.includes(resume.templateId) ? resume.templateId : 'modern-minimal';
@@ -13261,26 +15121,49 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
       const map = resume.sectionPositions[tpl];
       let maxZ = Object.values(map).reduce((m, p) => Math.max(m, Number(p?.z) || 24), 24);
       const logs = [];
+      const pad = SHEET_SAFE_EDGE_PX;
 
       adjustments.forEach((raw) => {
         if (!raw || typeof raw !== 'object') return;
-        let moveId = String(raw.moveId || raw.sectionId || '').trim();
-        // If AI gave a plain role name like "education" instead of "p1::education", resolve it smartly!
-        if (moveId && !moveId.includes('::')) {
-          const cleanRole = moveId.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-          const match =
-            layoutList.find((s) => s.pageIndex > 0 && s.moveId.endsWith(`::${cleanRole}`)) ||
-            layoutList.find((s) => s.moveId.endsWith(`::${cleanRole}`)) ||
-            layoutList.find((s) => s.label.toLowerCase() === cleanRole) ||
-            layoutList.find((s) => s.label.toLowerCase().includes(cleanRole) || cleanRole.includes(s.label.toLowerCase()));
-          if (match) moveId = match.moveId;
-        }
+        let moveId = String(raw.moveId ?? raw.move_id ?? raw.sectionId ?? raw.section_id ?? raw.section ?? raw.target ?? raw.id ?? raw.name ?? raw.label ?? raw.role ?? '').trim();
         if (!moveId) return;
+
+        // Smartly resolve plain role/label names (e.g. "Skills", "experience", "photo", "header", "Profile Photo") to exact moveId!
+        if (!layoutList.some((s) => s.moveId === moveId)) {
+          const cleanRole = moveId.toLowerCase().replace(/^p\d+::/, '').replace(/[^a-z0-9_-]/g, '');
+          const roleAliases = {
+            profile: 'summary', about: 'summary', bio: 'summary',
+            work: 'experience', employment: 'experience', career: 'experience',
+            skill: 'skills', competencies: 'skills', capabilities: 'skills',
+            edu: 'education', school: 'education',
+            cert: 'certifications', certs: 'certifications', awards: 'certifications',
+            project: 'projects',
+            avatar: 'photo', picture: 'photo', headshot: 'photo', portrait: 'photo', profilephoto: 'photo', image: 'photo',
+            contacts: 'contact', contactinfo: 'contact',
+            title: 'header', banner: 'header', hero: 'header', name: 'header',
+          };
+          const mappedRole = roleAliases[cleanRole] || cleanRole;
+          const reqPageHint = Number.isFinite(Number(raw.fromPage)) ? Number(raw.fromPage) - 1 : null;
+          const match =
+            (reqPageHint !== null ? layoutList.find((s) => s.pageIndex === reqPageHint && (s.moveId.endsWith(`::${mappedRole}`) || s.label.toLowerCase().includes(mappedRole))) : null) ||
+            layoutList.find((s) => s.pageIndex > 0 && s.moveId.endsWith(`::${mappedRole}`)) ||
+            layoutList.find((s) => s.moveId.endsWith(`::${mappedRole}`)) ||
+            layoutList.find((s) => s.label.toLowerCase() === cleanRole || s.label.toLowerCase() === mappedRole) ||
+            layoutList.find((s) => s.label.toLowerCase().includes(mappedRole) || mappedRole.includes(s.label.toLowerCase()));
+          if (match) {
+            moveId = match.moveId;
+          } else if (mappedRole === 'photo') {
+            moveId = 'p0::photo';
+          } else if (!moveId.includes('::')) {
+            moveId = `p0::${mappedRole}`;
+          }
+        }
 
         const secInfo = layoutList.find((s) => s.moveId === moveId);
         const label = secInfo?.label || moveId.split('::')[1] || moveId;
+        const isPhotoTarget = moveId.endsWith('::photo');
 
-        if (raw.reset === true) {
+        if (raw.reset === true || String(raw.action || '').toLowerCase() === 'reset') {
           if (map[moveId]) {
             delete map[moveId];
             logs.push(`Reset ${label} position`);
@@ -13289,56 +15172,123 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
         }
 
         const existing = map[moveId] || {};
-        // Normalize targetPage (support 0-based `targetPage` OR 1-based `page`)
+
+        // Normalize targetPage (support 0-based `targetPage` OR 1-based `page` / `toPage`)
         let targetPage = undefined;
-        if (raw.targetPage !== undefined && raw.targetPage !== null && Number.isFinite(Number(raw.targetPage))) {
-          targetPage = Math.max(0, Math.min(maxPageIdx, Math.round(Number(raw.targetPage))));
-        } else if (raw.page !== undefined && raw.page !== null && Number.isFinite(Number(raw.page))) {
-          targetPage = Math.max(0, Math.min(maxPageIdx, Math.round(Number(raw.page)) - 1));
+        if (raw.targetPage !== undefined && raw.targetPage !== null && Number.isFinite(parseLooseNumeric(raw.targetPage))) {
+          targetPage = Math.max(0, Math.min(maxPageIdx, Math.round(parseLooseNumeric(raw.targetPage))));
+        } else if (raw.target_page !== undefined && raw.target_page !== null && Number.isFinite(parseLooseNumeric(raw.target_page))) {
+          targetPage = Math.max(0, Math.min(maxPageIdx, Math.round(parseLooseNumeric(raw.target_page))));
+        } else if (raw.page !== undefined && raw.page !== null && Number.isFinite(parseLooseNumeric(raw.page))) {
+          targetPage = Math.max(0, Math.min(maxPageIdx, Math.round(parseLooseNumeric(raw.page)) - 1));
+        } else if (raw.toPage !== undefined && raw.toPage !== null && Number.isFinite(parseLooseNumeric(raw.toPage))) {
+          targetPage = Math.max(0, Math.min(maxPageIdx, Math.round(parseLooseNumeric(raw.toPage)) - 1));
         }
 
-        const hasAbs =
-          (raw.absX !== undefined && Number.isFinite(Number(raw.absX))) ||
-          (raw.absY !== undefined && Number.isFinite(Number(raw.absY))) ||
-          (targetPage !== undefined && secInfo && targetPage !== secInfo.pageIndex);
+        // Parse width / deltaWidth / scale (supporting "320px", "+40px", "85%", etc.)
+        const parsedWidthRaw = parseLooseNumeric(raw.width ?? raw.w);
+        const parsedDeltaW = parseLooseNumeric(raw.dw ?? raw.deltaWidth ?? raw.delta_width);
+        let nextW = existing.w;
+        if (Number.isFinite(parsedWidthRaw)) {
+          nextW = Math.round(Math.min(paper.widthPx - pad * 2, Math.max(isPhotoTarget ? 48 : 130, parsedWidthRaw)));
+        } else if (Number.isFinite(parsedDeltaW)) {
+          const baseW = Number(existing.w) || secInfo?.width || 260;
+          nextW = Math.round(Math.min(paper.widthPx - pad * 2, Math.max(isPhotoTarget ? 48 : 130, baseW + parsedDeltaW)));
+        }
 
-        const nextW =
-          Number.isFinite(Number(raw.width ?? raw.w))
-            ? Math.round(Math.min(paper.widthPx - 24, Math.max(130, Number(raw.width ?? raw.w))))
-            : existing.w || (secInfo ? Math.round(secInfo.width) : undefined);
+        // Parse per-section visual scale (0.65..1.35)
+        let parsedScale = parseLooseNumeric(raw.scale ?? raw.fontScale ?? raw.sizeScale);
+        if (Number.isFinite(parsedScale) && parsedScale > 2 && parsedScale <= 200) {
+          parsedScale = parsedScale / 100;
+        }
+        const nextScale = Number.isFinite(parsedScale)
+          ? Math.round(Math.min(1.35, Math.max(0.65, parsedScale)) * 100) / 100
+          : existing.scale;
 
-        const nextZ = Number.isFinite(Number(raw.z)) ? Math.round(Number(raw.z)) : (existing.z || ++maxZ);
+        // If resizing the Profile Photo directly, update designSettings.photoSize so the image itself resizes cleanly!
+        if (isPhotoTarget && (Number.isFinite(parsedWidthRaw) || Number.isFinite(parsedDeltaW) || Number.isFinite(parsedScale))) {
+          const curPhotoPx = Number(resume.designSettings?.photoSize) || DEFAULT_PHOTO_SIZE_PX;
+          let targetPhotoPx = curPhotoPx;
+          if (Number.isFinite(parsedWidthRaw)) targetPhotoPx = parsedWidthRaw;
+          else if (Number.isFinite(parsedDeltaW)) targetPhotoPx = curPhotoPx + parsedDeltaW;
+          else if (Number.isFinite(parsedScale)) targetPhotoPx = curPhotoPx * parsedScale;
+          resume.designSettings.photoSize = Math.round(Math.min(288, Math.max(48, targetPhotoPx)));
+          logs.push(`Resized Profile Photo → ${resume.designSettings.photoSize}px`);
+        }
 
-        const pad = SHEET_SAFE_EDGE_PX;
-        const safeW = nextW ? Math.round(Math.min(paper.widthPx - pad * 2, Math.max(130, nextW))) : undefined;
-        const estW = safeW || secInfo?.width || 240;
-        const estH = secInfo?.height || 120;
+        const nextZ = Number.isFinite(parseLooseNumeric(raw.z ?? raw.zIndex))
+          ? Math.round(parseLooseNumeric(raw.z ?? raw.zIndex))
+          : (existing.z || ++maxZ);
+
+        const safeW = !isPhotoTarget && Number.isFinite(Number(nextW))
+          ? Math.round(Math.min(paper.widthPx - pad * 2, Math.max(130, Number(nextW))))
+          : undefined;
+        const estW = isPhotoTarget ? (Number(resume.designSettings?.photoSize) || 144) : (safeW || secInfo?.width || 240);
+        const estH = isPhotoTarget ? estW : Math.round((secInfo?.height || 120) * (nextScale || 1));
         const maxSafeX = Math.max(pad, paper.widthPx - pad - estW);
         const maxSafeY = Math.max(pad, paper.heightPx - pad - Math.min(estH, paper.heightPx - pad * 2));
 
-        if (hasAbs) {
-          const curX = Number.isFinite(Number(raw.absX)) ? Number(raw.absX) : (Number.isFinite(Number(existing.absX)) ? Number(existing.absX) : (secInfo?.x ?? 48));
-          const curY = Number.isFinite(Number(raw.absY)) ? Number(raw.absY) : (Number.isFinite(Number(existing.absY)) ? Number(existing.absY) : (secInfo?.y ?? 48));
-          const clampedX = Math.round(Math.max(pad, Math.min(maxSafeX, curX)));
-          const clampedY = Math.round(Math.max(pad, Math.min(maxSafeY, curY)));
+        // Parse explicit absolute coordinates (`absX`, `absY`, `x`, `y`, `left`, `top`) OR named anchor (`position`/`align`)
+        const rawAbsX = parseLooseNumeric(raw.absX ?? raw.abs_x ?? raw.left ?? raw.x);
+        const rawAbsY = parseLooseNumeric(raw.absY ?? raw.abs_y ?? raw.top ?? raw.y);
+        let namedAbsX = NaN;
+        let namedAbsY = NaN;
+        const posStr = String(raw.position ?? raw.align ?? raw.placement ?? '').trim().toLowerCase();
+        if (posStr) {
+          const mL = Math.max(pad, Math.round((resume.designSettings?.marginLeft ?? 0.5) * CSS_DPI));
+          const mR = Math.max(pad, Math.round((resume.designSettings?.marginRight ?? 0.5) * CSS_DPI));
+          const mT = Math.max(pad, Math.round((resume.designSettings?.marginTop ?? 0.5) * CSS_DPI));
+          const mB = Math.max(pad, Math.round((resume.designSettings?.marginBottom ?? 0.45) * CSS_DPI));
+          if (posStr.includes('left')) namedAbsX = mL;
+          else if (posStr.includes('right')) namedAbsX = Math.max(pad, paper.widthPx - mR - estW);
+          else if (posStr.includes('center') || posStr.includes('middle')) namedAbsX = Math.round((paper.widthPx - estW) / 2);
+          if (posStr.includes('top')) namedAbsY = mT;
+          else if (posStr.includes('bottom')) namedAbsY = Math.max(pad, paper.heightPx - mB - estH);
+        }
+
+        // Parse relative delta (`dx`, `dy`, `deltaX`, `deltaY`, `offsetX`, `offsetY`, `moveX`, `moveY`, or `direction` + `amount`)
+        let dx = parseLooseNumeric(raw.dx ?? raw.deltaX ?? raw.delta_x ?? raw.offsetX ?? raw.offset_x ?? raw.moveX);
+        let dy = parseLooseNumeric(raw.dy ?? raw.deltaY ?? raw.delta_y ?? raw.offsetY ?? raw.offset_y ?? raw.moveY);
+        if (!Number.isFinite(dx)) dx = 0;
+        if (!Number.isFinite(dy)) dy = 0;
+        const dirStr = String(raw.direction ?? '').trim().toLowerCase();
+        const amtVal = parseLooseNumeric(raw.amount ?? raw.distance ?? raw.px);
+        const stepPx = Number.isFinite(amtVal) ? Math.abs(amtVal) : 32;
+        if (dirStr === 'up') dy -= stepPx;
+        else if (dirStr === 'down') dy += stepPx;
+        else if (dirStr === 'left') dx -= stepPx;
+        else if (dirStr === 'right') dx += stepPx;
+
+        const hasExplicitAbs =
+          Number.isFinite(rawAbsX) ||
+          Number.isFinite(rawAbsY) ||
+          Number.isFinite(namedAbsX) ||
+          Number.isFinite(namedAbsY) ||
+          (targetPage !== undefined && secInfo && targetPage !== secInfo.pageIndex);
+
+        if (hasExplicitAbs) {
+          const chosenX = Number.isFinite(rawAbsX) ? rawAbsX : (Number.isFinite(namedAbsX) ? namedAbsX : (Number.isFinite(Number(existing.absX)) ? Number(existing.absX) : (secInfo?.x ?? 48)));
+          const chosenY = Number.isFinite(rawAbsY) ? rawAbsY : (Number.isFinite(namedAbsY) ? namedAbsY : (Number.isFinite(Number(existing.absY)) ? Number(existing.absY) : (secInfo?.y ?? 48)));
+          const clampedX = Math.round(Math.max(pad, Math.min(maxSafeX, chosenX + dx)));
+          const clampedY = Math.round(Math.max(pad, Math.min(maxSafeY, chosenY + dy)));
           const destPg = targetPage !== undefined ? targetPage : (Number.isInteger(existing.targetPage) ? existing.targetPage : (secInfo?.pageIndex ?? 0));
           map[moveId] = {
             targetPage: destPg,
             absX: clampedX,
             absY: clampedY,
             ...(safeW ? { w: safeW } : {}),
+            ...(nextScale && Math.abs(nextScale - 1) > 0.01 ? { scale: nextScale } : {}),
             z: nextZ,
           };
-          logs.push(`Moved ${label} → P${destPg + 1} (${clampedX}, ${clampedY})${safeW ? ` W:${safeW}px` : ''}`);
-        } else {
-          const dx = Number.isFinite(Number(raw.dx)) ? Math.round(Number(raw.dx)) : (Number.isFinite(Number(raw.x)) ? Math.round(Number(raw.x)) - (Number(existing.x) || 0) : 0);
-          const dy = Number.isFinite(Number(raw.dy)) ? Math.round(Number(raw.dy)) : (Number.isFinite(Number(raw.y)) ? Math.round(Number(raw.y)) - (Number(existing.y) || 0) : 0);
+          logs.push(`Moved ${label} → P${destPg + 1} (${clampedX}, ${clampedY})${safeW ? ` W:${safeW}px` : ''}${nextScale && Math.abs(nextScale - 1) > 0.01 ? ` ${Math.round(nextScale * 100)}%` : ''}`);
+        } else if (dx !== 0 || dy !== 0 || safeW || (nextScale && Math.abs(nextScale - 1) > 0.01)) {
           if (Number.isFinite(Number(existing.absX)) && Number.isFinite(Number(existing.absY))) {
             map[moveId] = {
               ...existing,
               absX: Math.round(Math.max(pad, Math.min(maxSafeX, Number(existing.absX) + dx))),
               absY: Math.round(Math.max(pad, Math.min(maxSafeY, Number(existing.absY) + dy))),
               ...(safeW ? { w: safeW } : {}),
+              ...(nextScale && Math.abs(nextScale - 1) > 0.01 ? { scale: nextScale } : {}),
               z: nextZ,
             };
           } else {
@@ -13351,14 +15301,215 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
               x: Math.round(targetAbsX - origX),
               y: Math.round(targetAbsY - origY),
               ...(safeW ? { w: safeW } : {}),
+              ...(nextScale && Math.abs(nextScale - 1) > 0.01 ? { scale: nextScale } : {}),
               z: nextZ,
             };
           }
-          logs.push(`Adjusted ${label} (${dx >= 0 ? '+' : ''}${dx}, ${dy >= 0 ? '+' : ''}${dy})${nextW ? ` W:${nextW}px` : ''}`);
+          const parts = [];
+          if (dx !== 0 || dy !== 0) parts.push(`${dx >= 0 ? '+' : ''}${Math.round(dx)}, ${dy >= 0 ? '+' : ''}${Math.round(dy)}`);
+          if (safeW) parts.push(`W:${safeW}px`);
+          if (nextScale && Math.abs(nextScale - 1) > 0.01) parts.push(`Scale:${Math.round(nextScale * 100)}%`);
+          logs.push(`Adjusted ${label} (${parts.join(' · ')})`);
         }
       });
 
       return logs;
+    }
+
+    // Deterministic Natural-Language Visual Layout Fallback Engine:
+    // If Gemini replies in prose or omits concrete visual JSON actions for an explicit user move/resize/style request,
+    // this engine parses the command directly against the measured live sectionsLayout & safePaperBounds!
+    function parseDirectVisualCommandFallback(promptText, resume, telemetryBundle) {
+      const txt = String(promptText || '').trim();
+      const lower = txt.toLowerCase();
+      const res = { docActions: {}, designPatch: {}, sectionAdj: [], requestedTemplate: null };
+      if (!txt || !resume) return res;
+
+      const layoutList = telemetryBundle?.sectionsLayout || [];
+      const paper = telemetryBundle?.effPaper || getEffectiveScaledPaper(PAPER_SIZES[resume.paperSize] || PAPER_SIZES.letter, resume.designSettings).effPaper;
+      const curD = { ...DEFAULT_DESIGN_SETTINGS, ...(resume.designSettings || {}) };
+
+      // 1. Reset layout / positions / design
+      if (/\breset\b[\s\S]{0,25}\b(?:layout|position|positions|sections?|all)\b/i.test(lower)) {
+        res.docActions.resetSectionPositions = true;
+      }
+      if (/\breset\b[\s\S]{0,20}\b(?:design|style|styling|template\s+defaults?)\b/i.test(lower)) {
+        res.docActions.resetDesign = true;
+      }
+
+      // 2. Paper size shortcuts
+      if (/\b(?:long\s*bond|folio|legal|8\.5\s*[x×]\s*13)\b/i.test(lower)) res.docActions.paperSize = 'legal';
+      else if (/\b(?:short\s*bond|us\s*letter|letter\s+size|8\.5\s*[x×]\s*11)\b/i.test(lower)) res.docActions.paperSize = 'letter';
+
+      // 3. Identify mentioned section(s) from the real measured sectionsLayout
+      const sectionPatterns = [
+        { role: 'header', re: /\b(?:header|banner|masthead|name\s+section|top\s+banner)\b/i },
+        { role: 'photo', re: /\b(?:photo|picture|portrait|headshot|avatar|profile\s+pic(?:ture)?)\b/i },
+        { role: 'contact', re: /\b(?:contact|contacts|contact\s+info|contact\s+details)\b/i },
+        { role: 'summary', re: /\b(?:summary|profile|about\s+me|about\s+section|objective)\b/i },
+        { role: 'experience', re: /\b(?:experience|work\s+experience|work\s+history|employment|career)\b/i },
+        { role: 'skills', re: /\b(?:skills?|competencies|capabilities|tech\s+stack)\b/i },
+        { role: 'education', re: /\b(?:education|academic|degree|school)\b/i },
+        { role: 'projects', re: /\b(?:projects?|portfolio)\b/i },
+        { role: 'certifications', re: /\b(?:certifications?|certs?|awards?|licenses?)\b/i },
+      ];
+
+      const matchedSections = [];
+      sectionPatterns.forEach(({ role, re }) => {
+        const m = lower.match(re);
+        if (!m) return;
+        const sec =
+          layoutList.find((s) => s.pageIndex > 0 && s.moveId.endsWith(`::${role}`)) ||
+          layoutList.find((s) => s.moveId.endsWith(`::${role}`)) ||
+          layoutList.find((s) => s.label.toLowerCase().includes(role));
+        if (sec && !matchedSections.some((x) => x.sec.moveId === sec.moveId)) {
+          matchedSections.push({ role, sec, idx: m.index ?? 0 });
+        } else if (role === 'photo') {
+          matchedSections.push({ role: 'photo', sec: { moveId: 'p0::photo', label: 'Profile Photo', pageIndex: 0, x: 48, y: 48, width: curD.photoSize || 144, height: curD.photoSize || 144 }, idx: m.index ?? 0 });
+        }
+      });
+      matchedSections.sort((a, b) => a.idx - b.idx);
+
+      // 4. Handle SWAP two sections ("swap skills and education")
+      if (/\b(?:swap|switch|exchange|flip)\b/i.test(lower) && matchedSections.length >= 2) {
+        const a = matchedSections[0].sec;
+        const b = matchedSections[1].sec;
+        res.sectionAdj.push(
+          { moveId: a.moveId, targetPage: b.pageIndex, absX: b.x, absY: b.y, width: b.width },
+          { moveId: b.moveId, targetPage: a.pageIndex, absX: a.x, absY: a.y, width: a.width }
+        );
+        return res;
+      }
+
+      // 5. Handle Show/Hide Photo or Sections
+      if (/\b(?:hide|remove)\b[\s\S]{0,20}\b(?:photo|picture|portrait|avatar)\b/i.test(lower)) {
+        res.designPatch.showPhoto = false;
+      } else if (/\b(?:show|enable|display|add)\b[\s\S]{0,20}\b(?:photo|picture|portrait|avatar)\b/i.test(lower)) {
+        res.designPatch.showPhoto = true;
+      }
+
+      // 6. Handle Spatial Move / Resize / Scale on the primary matched section(s)
+      const pxNumMatch = lower.match(/([+-]?\d+(?:\.\d+)?)\s*px\b/);
+      const explicitPx = pxNumMatch ? Math.abs(Number(pxNumMatch[1])) : null;
+      const pctMatch = lower.match(/(\d{2,3})\s*%/);
+      const explicitPct = pctMatch ? Number(pctMatch[1]) : null;
+      const toPageMatch = lower.match(/\b(?:to|onto|on)\s+page\s*(\d+)\b/i);
+      const explicitTargetPage = toPageMatch ? Math.max(0, Number(toPageMatch[1]) - 1) : null;
+
+      if (matchedSections.length > 0) {
+        const target = matchedSections[0].sec;
+        const isPhoto = target.moveId.endsWith('::photo');
+        const adj = { moveId: target.moveId };
+        let hasAdj = false;
+
+        if (explicitTargetPage !== null) {
+          adj.targetPage = explicitTargetPage;
+          if (explicitTargetPage === 0 && telemetryBundle?.page1OpenPockets?.length > 0) {
+            const pk = telemetryBundle.page1OpenPockets.slice().sort((a, b) => b.availableHeight - a.availableHeight)[0];
+            adj.absX = pk.x;
+            adj.absY = pk.y;
+            adj.width = pk.width;
+          }
+          hasAdj = true;
+        }
+
+        // Named corner/edge anchors ("move skills to bottom right", "put photo on the left", "center header")
+        const anchorMatch = lower.match(/\b(top[\s-]?left|top[\s-]?right|bottom[\s-]?left|bottom[\s-]?right|top[\s-]?center|bottom[\s-]?center)\b/i);
+        if (anchorMatch) {
+          adj.position = anchorMatch[1].replace(/\s+/g, '-').toLowerCase();
+          hasAdj = true;
+        } else if (/\b(?:move|put|place|shift|align|relocate|reposition|push|pull)\b/i.test(lower)) {
+          const step = explicitPx || 56;
+          if (/\b(?:to\s+the\s+right|right\s+side|right\s+column)\b/i.test(lower)) {
+            if (isPhoto) { res.designPatch.photoPosition = 'right'; }
+            else { adj.position = 'right'; hasAdj = true; }
+          } else if (/\b(?:to\s+the\s+left|left\s+side|left\s+column)\b/i.test(lower)) {
+            if (isPhoto) { res.designPatch.photoPosition = 'left'; }
+            else { adj.position = 'left'; hasAdj = true; }
+          } else if (/\b(?:to\s+the\s+bottom|at\s+the\s+bottom)\b/i.test(lower)) {
+            adj.position = 'bottom'; hasAdj = true;
+          } else if (/\b(?:to\s+the\s+top|at\s+the\s+top)\b/i.test(lower)) {
+            adj.position = 'top'; hasAdj = true;
+          } else if (/\b(?:center|middle)\b/i.test(lower)) {
+            if (target.moveId.endsWith('::header')) { res.designPatch.headerAlign = 'center'; }
+            else { adj.position = 'center'; hasAdj = true; }
+          } else {
+            if (/\b(?:up|higher|upward|raise)\b/i.test(lower)) { adj.dy = -step; hasAdj = true; }
+            if (/\b(?:down|lower|downward)\b/i.test(lower)) { adj.dy = step; hasAdj = true; }
+            if (/\bleft\b/i.test(lower)) { adj.dx = -step; hasAdj = true; }
+            if (/\bright\b/i.test(lower)) { adj.dx = step; hasAdj = true; }
+          }
+        }
+
+        // Width resize or visual scale ("make experience wider", "resize skills to 300px", "make photo bigger", "shrink summary")
+        if (/\b(?:widen|wider|expand\s+width|increase\s+width|broader)\b/i.test(lower)) {
+          adj.dw = explicitPx || 64;
+          hasAdj = true;
+        } else if (/\b(?:narrow|narrower|reduce\s+width|thinner)\b/i.test(lower)) {
+          adj.dw = -(explicitPx || 64);
+          hasAdj = true;
+        } else if (/\b(?:width|wide)\b/i.test(lower) && explicitPx && explicitPx >= 110) {
+          adj.width = explicitPx;
+          hasAdj = true;
+        } else if (/\b(?:bigger|larger|enlarge|increase\s+size|scale\s+up)\b/i.test(lower)) {
+          if (isPhoto) {
+            res.designPatch.photoSize = Math.min(288, Math.round((curD.photoSize || 144) + (explicitPx || 32)));
+          } else {
+            adj.scale = explicitPct ? Math.min(1.35, Math.max(0.65, explicitPct / 100)) : 1.12;
+            hasAdj = true;
+          }
+        } else if (/\b(?:smaller|shrink|reduce\s+size|scale\s+down|compact)\b/i.test(lower)) {
+          if (isPhoto) {
+            res.designPatch.photoSize = Math.max(48, Math.round((curD.photoSize || 144) - (explicitPx || 32)));
+          } else {
+            adj.scale = explicitPct ? Math.min(1.35, Math.max(0.65, explicitPct / 100)) : 0.88;
+            hasAdj = true;
+          }
+        } else if (/\bresize\b/i.test(lower) && explicitPx) {
+          if (isPhoto) res.designPatch.photoSize = Math.min(288, Math.max(48, explicitPx));
+          else { adj.width = Math.max(130, Math.min(paper.widthPx - 24, explicitPx)); hasAdj = true; }
+        }
+
+        if (hasAdj) {
+          res.sectionAdj.push(adj);
+        }
+      }
+
+      // 7. Global design/visual layout tweaks (fonts, colors, sidebar, margins, spacing)
+      if (/\bsidebar\b/i.test(lower)) {
+        if (/\b(?:wider|widen|bigger|increase)\b/i.test(lower)) res.designPatch.sidebarWidth = Math.min(340, Math.round((curD.sidebarWidth || 248) + (explicitPx || 32)));
+        else if (/\b(?:narrower|narrow|smaller|decrease)\b/i.test(lower)) res.designPatch.sidebarWidth = Math.max(180, Math.round((curD.sidebarWidth || 248) - (explicitPx || 32)));
+        else if (explicitPx && explicitPx >= 180 && explicitPx <= 340) res.designPatch.sidebarWidth = explicitPx;
+      }
+      if (/\b(?:font\s*size|text\s*size|fonts?)\b/i.test(lower) && matchedSections.length === 0) {
+        if (/\b(?:bigger|larger|increase)\b/i.test(lower)) res.designPatch.fontSize = Math.min(16, Math.round((curD.fontSize + 1) * 10) / 10);
+        else if (/\b(?:smaller|decrease|reduce)\b/i.test(lower)) res.designPatch.fontSize = Math.max(8.5, Math.round((curD.fontSize - 1) * 10) / 10);
+      }
+      if (/\b(?:margin|margins)\b/i.test(lower)) {
+        if (/\b(?:smaller|tighter|narrower|less|reduce)\b/i.test(lower)) {
+          const nm = Math.max(0.25, Math.round((curD.marginLeft - 0.12) * 100) / 100);
+          res.designPatch.marginTop = nm; res.designPatch.marginBottom = nm; res.designPatch.marginLeft = nm; res.designPatch.marginRight = nm;
+        } else if (/\b(?:wider|bigger|larger|more|increase)\b/i.test(lower)) {
+          const nm = Math.min(1.2, Math.round((curD.marginLeft + 0.12) * 100) / 100);
+          res.designPatch.marginTop = nm; res.designPatch.marginBottom = nm; res.designPatch.marginLeft = nm; res.designPatch.marginRight = nm;
+        }
+      }
+      if (/\b(?:accent|color|colour|theme\s+color)\b/i.test(lower)) {
+        const hexMatch = lower.match(/#[0-9a-f]{6}\b/);
+        if (hexMatch) {
+          res.designPatch.accentColor = hexMatch[0];
+        } else {
+          for (const [cName, cHex] of Object.entries(NAMED_DESIGN_COLORS)) {
+            if (new RegExp(`\\b${cName}\\b`, 'i').test(lower)) {
+              if (/\b(?:background|paper|page\s+color)\b/i.test(lower)) res.designPatch.pageBgColor = cHex;
+              else res.designPatch.accentColor = cHex;
+              break;
+            }
+          }
+        }
+      }
+
+      return res;
     }
 
     function syncMoveModeButtons(hasResume = Boolean(getSelectedResume())) {
@@ -13440,6 +15591,40 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
       return ring;
     }
 
+    function syncSelectedSectionChatChip() {
+      const bar = document.getElementById('chat-selected-section-bar');
+      const lbl = document.getElementById('chat-selected-section-label');
+      if (!bar || !lbl) return;
+      if (!state.selectedMoveId) {
+        bar.classList.add('hidden');
+        bar.classList.remove('flex');
+        return;
+      }
+      const el = document.querySelector(`.physical-paper-sheet .movable-section-box[data-move-id="${CSS.escape(state.selectedMoveId)}"]`);
+      let metaTxt = state.selectedMoveId;
+      if (el) {
+        const sheet = el.closest('.physical-paper-sheet');
+        const label = el.getAttribute('data-move-label') || 'Section';
+        if (sheet) {
+          const resume = getSelectedResume();
+          const { effPaper } = getEffectiveScaledPaper(PAPER_SIZES[resume?.paperSize] || PAPER_SIZES.letter, resume?.designSettings);
+          const sr = sheet.getBoundingClientRect();
+          const er = el.getBoundingClientRect();
+          const sc = Math.max(0.2, sr.width / effPaper.widthPx);
+          const x = Math.round((er.left - sr.left) / sc);
+          const y = Math.round((er.top - sr.top) / sc);
+          const w = Math.round(er.width / sc);
+          const h = Math.round(er.height / sc);
+          metaTxt = `${label} [${state.selectedMoveId}] · x:${x} y:${y} (${w}×${h}px)`;
+        } else {
+          metaTxt = `${label} [${state.selectedMoveId}]`;
+        }
+      }
+      lbl.textContent = metaTxt;
+      bar.classList.remove('hidden');
+      bar.classList.add('flex');
+    }
+
     function selectMovableSection(moveId) {
       document.querySelectorAll('.movable-section-box.is-selected-movable').forEach((n) => {
         if (n.getAttribute('data-move-id') !== moveId) {
@@ -13451,11 +15636,60 @@ ALWAYS respond strictly in valid JSON (include "documentActions.sectionAdjustmen
         const el = document.querySelector(`.physical-paper-sheet .movable-section-box[data-move-id="${CSS.escape(moveId)}"]`);
         if (el) el.classList.add('is-selected-movable');
       }
+      syncSelectedSectionChatChip();
     }
 
     function clearSelectedMovableSection() {
       state.selectedMoveId = null;
       document.querySelectorAll('.movable-section-box.is-selected-movable').forEach((n) => n.classList.remove('is-selected-movable'));
+      syncSelectedSectionChatChip();
+    }
+
+    function togglePixelGridOverlay() {
+      state.showPixelGrid = !state.showPixelGrid;
+      renderPreviewPanel();
+      showStatusBanner(
+        'success',
+        state.showPixelGrid
+          ? 'Pixel Coordinate Grid ON (50px lines, 1px cursor readout) — strictly hidden on PDF export & print.'
+          : 'Pixel Coordinate Grid hidden.'
+      );
+    }
+
+    function buildOnCanvasPixelGridSvgHtml(paper) {
+      const W = paper.widthPx;
+      const H = paper.heightPx;
+      let lines = '';
+      for (let x = 50; x < W; x += 50) {
+        const is100 = x % 100 === 0;
+        lines += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#7c3aed" stroke-opacity="${is100 ? '0.22' : '0.11'}" stroke-width="1" ${is100 ? '' : 'stroke-dasharray="3 3"'}/>`;
+        if (is100) {
+          lines += `<rect x="${x - 14}" y="1" width="28" height="12" rx="2" fill="rgba(15,23,42,0.72)"/><text x="${x}" y="10" fill="#fff" font-size="8.5" font-family="monospace" font-weight="700" text-anchor="middle">${x}</text>`;
+        }
+      }
+      for (let y = 50; y < H; y += 50) {
+        const is100 = y % 100 === 0;
+        lines += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#7c3aed" stroke-opacity="${is100 ? '0.22' : '0.11'}" stroke-width="1" ${is100 ? '' : 'stroke-dasharray="3 3"'}/>`;
+        if (is100) {
+          lines += `<rect x="1" y="${y - 6}" width="28" height="12" rx="2" fill="rgba(15,23,42,0.72)"/><text x="15" y="${y + 3}" fill="#fff" font-size="8.5" font-family="monospace" font-weight="700" text-anchor="middle">${y}</text>`;
+        }
+      }
+      return `<svg class="wysiwyg-only pixel-coord-grid-overlay" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${lines}</svg>`;
+    }
+
+    function updateLivePixelCursorReadout(event, sheetEl) {
+      const hud = document.getElementById('live-pixel-cursor-hud');
+      if (!hud || !sheetEl) return;
+      const resume = getSelectedResume();
+      const rawPaper = PAPER_SIZES[resume?.paperSize] || PAPER_SIZES.letter;
+      const { effPaper } = getEffectiveScaledPaper(rawPaper, resume?.designSettings);
+      const r = sheetEl.getBoundingClientRect();
+      if (r.width <= 0) return;
+      const sc = r.width / effPaper.widthPx;
+      const x = Math.max(0, Math.min(effPaper.widthPx, Math.round((event.clientX - r.left) / sc)));
+      const y = Math.max(0, Math.min(effPaper.heightPx, Math.round((event.clientY - r.top) / sc)));
+      const pg = Number(sheetEl.getAttribute('data-page-index') || 0) + 1;
+      hud.textContent = `P${pg} x:${x}px y:${y}px`;
     }
 
     function handleCanvasBackdropPointerDown(event) {
